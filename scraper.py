@@ -85,6 +85,7 @@ class GiroScraper:
     def __init__(self, base_url: str = "https://www.procyclingstats.com") -> None:
         self.base_url = base_url.rstrip("/")
         self.cache_dir = Path(__file__).resolve().parent / "data" / "startlist_cache"
+        self.bootstrap_startlist_dir = Path(__file__).resolve().parent / "data" / "bootstrap_startlist"
         self.results_cache_dir = Path(__file__).resolve().parent / "data" / "results_cache"
         self.session = requests.Session()
         self.session.headers.update(
@@ -108,6 +109,15 @@ class GiroScraper:
 
     def _load_cache(self, year: int) -> list[dict]:
         path = self._cache_path(year)
+        if not path.exists():
+            return []
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return _normalize_team_rows(data)
+        return []
+
+    def _load_bootstrap_startlist(self, year: int) -> list[dict]:
+        path = self.bootstrap_startlist_dir / f"giro_{year}.json"
         if not path.exists():
             return []
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -672,9 +682,15 @@ class GiroScraper:
         if cached_rows:
             return cached_rows
 
+        bootstrap_rows = self._load_bootstrap_startlist(year)
+        if bootstrap_rows:
+            # Refresh writable cache so the app can continue using local fallback.
+            self._save_cache(year, bootstrap_rows)
+            return bootstrap_rows
+
         joined = " | ".join(errors) if errors else "unknown error"
         raise RuntimeError(
-            f"Unable to fetch startlist for {year}. External sources are blocked and no local cache was found ({joined})."
+            f"Unable to fetch startlist for {year}. External sources are blocked and no local/bootstrap cache was found ({joined})."
         )
 
     def get_rider_data(self, rider_slug: str) -> dict:
