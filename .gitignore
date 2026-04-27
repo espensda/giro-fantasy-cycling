@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+.streamlit/secrets.toml
+data/startlist_cache/
+data/results_cache/
+riders_showcase.html
