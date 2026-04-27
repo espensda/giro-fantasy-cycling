@@ -23,6 +23,22 @@ st.set_page_config(page_title="Giro Fantasy Cycling", layout="wide")
 # Initialize session state
 if 'db_initialized' not in st.session_state:
     init_db()
+    # Auto-seed riders from bootstrap if the DB is empty (e.g. fresh cloud deploy)
+    if not get_all_riders():
+        try:
+            scraper = GiroScraper()
+            rows = scraper.scrape_giro_startlist(year=SEASON_YEAR)
+            for row in rows:
+                add_rider(
+                    name=row['name'],
+                    team=row.get('team', ''),
+                    category=row.get('category', 'water_carrier'),
+                    price=row.get('price', 0),
+                    is_youth=row.get('is_youth', False),
+                )
+            assign_prices(get_all_riders())
+        except Exception:
+            pass  # silently skip; admin can trigger manually
     st.session_state.db_initialized = True
 
 
