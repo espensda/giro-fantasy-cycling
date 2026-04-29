@@ -35,22 +35,43 @@ def pricing_engine(category: str, rank: int | None = None, total: int | None = N
 
 
 def assign_prices(rows: list[dict]) -> list[dict]:
-    """Assign prices to rows based on position within each category."""
-    category_totals: dict[str, int] = {}
-    category_seen: dict[str, int] = {}
+    """Assign prices to rows based on rank within each category.
 
-    for row in rows:
+    If rows include optional web-derived strength fields (`web_score`, `score`, `uci_points`),
+    those are used to rank riders inside each category before pricing.
+    """
+    category_indices: dict[str, list[int]] = {}
+    for index, row in enumerate(rows):
         category = row['category']
-        category_totals[category] = category_totals.get(category, 0) + 1
+        category_indices.setdefault(category, []).append(index)
+
+    def _strength(row: dict, fallback_rank: int) -> float:
+        for key in ('web_score', 'score', 'uci_points'):
+            value = row.get(key)
+            if value is None:
+                continue
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                continue
+        # Preserve existing ordering when no web-derived score is available.
+        return float(-fallback_rank)
+
+    prices_by_index: dict[int, float] = {}
+    for category, indices in category_indices.items():
+        ranked_indices = sorted(
+            indices,
+            key=lambda idx: _strength(rows[idx], fallback_rank=indices.index(idx)),
+            reverse=True,
+        )
+        total = len(ranked_indices)
+        for rank, index in enumerate(ranked_indices):
+            prices_by_index[index] = pricing_engine(category, rank=rank, total=total)
 
     priced_rows = []
-    for row in rows:
-        category = row['category']
-        rank = category_seen.get(category, 0)
-        category_seen[category] = rank + 1
-
+    for index, row in enumerate(rows):
         priced_row = dict(row)
-        priced_row['price'] = pricing_engine(category, rank=rank, total=category_totals[category])
+        priced_row['price'] = prices_by_index.get(index, pricing_engine(row['category']))
         priced_rows.append(priced_row)
 
     return priced_rows

@@ -1,16 +1,169 @@
 """Database models and helper functions for the Giro Fantasy Cycling app."""
 
 from datetime import datetime, UTC
+from pathlib import Path
+import sqlite3
 import unicodedata
 
 from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 
 DB_PATH = "sqlite:///giro_fantasy.db"
+PROJECT_DIR = Path(__file__).resolve().parent
+BACKUP_DIR = PROJECT_DIR / "backups"
 
 Base = declarative_base()
 engine = create_engine(DB_PATH, echo=False)
 SessionLocal = sessionmaker(bind=engine)
+
+
+def _db_file_path() -> Path:
+    """Return local SQLite file path from SQLAlchemy DB URL."""
+    prefix = "sqlite:///"
+    if DB_PATH.startswith(prefix):
+        raw = Path(DB_PATH[len(prefix):])
+        return raw if raw.is_absolute() else PROJECT_DIR / raw
+    return PROJECT_DIR / "giro_fantasy.db"
+
+
+def _ensure_backup_dir() -> Path:
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    return BACKUP_DIR
+
+
+def get_database_file_info() -> dict:
+    """Return basic database file details for admin UI."""
+    db_file = _db_file_path()
+    if not db_file.exists():
+        return {
+            "path": str(db_file),
+            "exists": False,
+            "size_bytes": 0,
+            "modified_at": "",
+        }
+
+    stat = db_file.stat()
+    return {
+        "path": str(db_file),
+        "exists": True,
+        "size_bytes": int(stat.st_size),
+        "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+    }
+
+
+def list_database_backups() -> list[str]:
+    """List available SQLite backups from newest to oldest."""
+    backup_dir = _ensure_backup_dir()
+    backup_names = [path.name for path in backup_dir.glob("giro_fantasy_*.db") if path.is_file()]
+    return sorted(backup_names, reverse=True)
+
+
+def _table_counts_for_db_file(db_path: Path) -> dict[str, int]:
+    """Read row counts for key tables from an SQLite database file."""
+    table_names = [
+        "riders",
+        "players",
+        "player_teams",
+        "stage_results",
+        "stage_points",
+        "classification_results",
+        "transfers",
+    ]
+    counts: dict[str, int] = {table_name: 0 for table_name in table_names}
+    if not db_path.exists() or not db_path.is_file():
+        return counts
+
+    with sqlite3.connect(str(db_path)) as connection:
+        cursor = connection.cursor()
+        for table_name in table_names:
+            try:
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                row = cursor.fetchone()
+                counts[table_name] = int(row[0]) if row else 0
+            except sqlite3.Error:
+                counts[table_name] = 0
+    return counts
+
+
+def get_current_database_counts() -> dict[str, int]:
+    """Return row counts for key tables in the active database."""
+    return _table_counts_for_db_file(_db_file_path())
+
+
+def get_backup_database_counts(backup_name: str) -> dict[str, int]:
+    """Return row counts for key tables from a named backup file."""
+    if not backup_name or "/" in backup_name or "\\" in backup_name:
+        raise ValueError("Invalid backup name")
+
+    backup_path = _ensure_backup_dir() / backup_name
+    if not backup_path.exists() or not backup_path.is_file():
+        raise FileNotFoundError(f"Backup not found: {backup_name}")
+
+    return _table_counts_for_db_file(backup_path)
+
+
+def read_database_backup_bytes(backup_name: str) -> bytes:
+    """Return backup bytes for download from admin UI."""
+    if not backup_name or "/" in backup_name or "\\" in backup_name:
+        raise ValueError("Invalid backup name")
+
+    backup_path = _ensure_backup_dir() / backup_name
+    if not backup_path.exists() or not backup_path.is_file():
+        raise FileNotFoundError(f"Backup not found: {backup_name}")
+    return backup_path.read_bytes()
+
+
+def restore_database_from_bytes(data: bytes) -> str:
+    """Write raw SQLite bytes as a named backup and restore it. Returns the backup filename."""
+    if len(data) < 16 or data[:6] != b"SQLite":
+        raise ValueError("Uploaded file does not appear to be a valid SQLite database.")
+
+    backup_dir = _ensure_backup_dir()
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    backup_name = f"giro_fantasy_{timestamp}.db"
+    backup_path = backup_dir / backup_name
+    backup_path.write_bytes(data)
+    restore_database_backup(backup_name)
+    return backup_name
+
+
+def create_database_backup() -> str:
+    """Create a timestamped SQLite backup and return the created filename."""
+    db_file = _db_file_path()
+    if not db_file.exists():
+        raise FileNotFoundError(f"Database file not found: {db_file}")
+
+    backup_dir = _ensure_backup_dir()
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    backup_name = f"giro_fantasy_{timestamp}.db"
+    backup_path = backup_dir / backup_name
+
+    with sqlite3.connect(str(db_file)) as source_conn:
+        with sqlite3.connect(str(backup_path)) as target_conn:
+            source_conn.backup(target_conn)
+
+    return backup_name
+
+
+def restore_database_backup(backup_name: str) -> None:
+    """Restore database from a named backup in the backups folder."""
+    if not backup_name or "/" in backup_name or "\\" in backup_name:
+        raise ValueError("Invalid backup name")
+
+    backup_path = _ensure_backup_dir() / backup_name
+    if not backup_path.exists() or not backup_path.is_file():
+        raise FileNotFoundError(f"Backup not found: {backup_name}")
+
+    db_file = _db_file_path()
+    db_file.parent.mkdir(parents=True, exist_ok=True)
+    engine.dispose()
+
+    with sqlite3.connect(str(backup_path)) as source_conn:
+        with sqlite3.connect(str(db_file)) as target_conn:
+            source_conn.backup(target_conn)
+
+    # Ensure expected schema migrations are present after restore.
+    init_db()
 
 
 class Player(Base):
@@ -83,8 +236,22 @@ class Transfer(Base):
     transfer_date = Column(String, nullable=False)
 
 
+SEED_DB_PATH = PROJECT_DIR / "data" / "seed.db"
+
+
 def init_db() -> None:
-    """Create all tables if they do not already exist."""
+    """Create all tables if they do not already exist.
+
+    On a fresh deployment (no giro_fantasy.db yet), seed from data/seed.db if
+    it is present so the app starts with pre-loaded demo data.
+    """
+    db_file = _db_file_path()
+    if not db_file.exists() and SEED_DB_PATH.exists():
+        import shutil
+        shutil.copy2(SEED_DB_PATH, db_file)
+        # Re-bind engine so SQLAlchemy sees the copied file
+        engine.dispose()
+
     Base.metadata.create_all(bind=engine)
     inspector = inspect(engine)
     if "stage_results" in inspector.get_table_names():

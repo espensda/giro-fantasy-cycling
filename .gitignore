@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.db
+!data/seed.db
 .streamlit/secrets.toml
 data/startlist_cache/
 data/results_cache/

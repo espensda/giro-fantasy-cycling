@@ -5,6 +5,7 @@ from __future__ import annotations
 
 class ScoringSystem:
     def __init__(self) -> None:
+        # Stage points for top 20 finishers (positions 21+ score 0 points)
         self.stage_points = {
             1: 90,
             2: 80,
