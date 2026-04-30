@@ -68,6 +68,7 @@ def _table_counts_for_db_file(db_path: Path) -> dict[str, int]:
         "stage_points",
         "classification_results",
         "transfers",
+        "rider_withdrawals",
     ]
     counts: dict[str, int] = {table_name: 0 for table_name in table_names}
     if not db_path.exists() or not db_path.is_file():
@@ -234,6 +235,15 @@ class Transfer(Base):
     rider_out_id = Column(Integer, ForeignKey("riders.id"), nullable=True)
     rider_in_id = Column(Integer, ForeignKey("riders.id"), nullable=True)
     transfer_date = Column(String, nullable=False)
+
+
+class RiderWithdrawal(Base):
+    __tablename__ = "rider_withdrawals"
+
+    id = Column(Integer, primary_key=True)
+    rider_id = Column(Integer, ForeignKey("riders.id"), nullable=False, unique=True)
+    withdrawal_date = Column(String, nullable=False)
+    note = Column(String, nullable=False, default="")
 
 
 SEED_DB_PATH = PROJECT_DIR / "data" / "seed.db"
@@ -737,8 +747,76 @@ def clear_riders() -> int:
         session.query(StagePoints).delete()
         session.query(ClassificationResult).delete()
         session.query(Transfer).delete()
+        session.query(RiderWithdrawal).delete()
         session.query(Rider).delete()
         session.commit()
         return removed
+    finally:
+        session.close()
+
+
+def upsert_rider_withdrawal(rider_name: str, withdrawal_date: str, note: str = "") -> int:
+    """Create or update a rider withdrawal record and return its id."""
+    session = _get_session()
+    try:
+        rider = session.query(Rider).filter(Rider.name == rider_name).first()
+        if rider is None:
+            raise ValueError(f"Rider not found: {rider_name}")
+
+        row = session.query(RiderWithdrawal).filter(RiderWithdrawal.rider_id == rider.id).first()
+        if row is None:
+            row = RiderWithdrawal(
+                rider_id=rider.id,
+                withdrawal_date=str(withdrawal_date),
+                note=str(note or "").strip(),
+            )
+            session.add(row)
+        else:
+            row.withdrawal_date = str(withdrawal_date)
+            row.note = str(note or "").strip()
+
+        session.commit()
+        session.refresh(row)
+        return row.id
+    finally:
+        session.close()
+
+
+def get_rider_withdrawals() -> list[tuple[int, str, int, str, str, str]]:
+    """Return rider withdrawals joined with rider metadata for UI/scoring."""
+    session = _get_session()
+    try:
+        rows = (
+            session.query(RiderWithdrawal, Rider)
+            .join(Rider, Rider.id == RiderWithdrawal.rider_id)
+            .order_by(RiderWithdrawal.withdrawal_date, Rider.name)
+            .all()
+        )
+        return [
+            (
+                withdrawal.id,
+                withdrawal.withdrawal_date,
+                rider.id,
+                rider.name,
+                rider.team,
+                withdrawal.note or "",
+            )
+            for withdrawal, rider in rows
+        ]
+    finally:
+        session.close()
+
+
+def delete_rider_withdrawal(withdrawal_id: int) -> bool:
+    """Delete a rider withdrawal by id and return True if deleted."""
+    session = _get_session()
+    try:
+        row = session.query(RiderWithdrawal).filter(RiderWithdrawal.id == int(withdrawal_id)).first()
+        if row is None:
+            return False
+
+        session.delete(row)
+        session.commit()
+        return True
     finally:
         session.close()

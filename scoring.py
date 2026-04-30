@@ -140,11 +140,13 @@ def calculate_leaderboard(
     stage_results: list[tuple],
     classification_results: dict[str, list[tuple]] | None = None,
     stage_points: list[tuple[int, str, str, int, float]] | None = None,
+    ds_rest_day_rows_by_player: dict[str, list[dict]] | None = None,
 ) -> tuple[list[dict], dict[str, list[dict]]]:
     """Build total leaderboard rows and per-player stage breakdowns from saved results."""
     scoring = ScoringSystem()
     classification_results = classification_results or {}
     stage_points = stage_points or []
+    ds_rest_day_rows_by_player = ds_rest_day_rows_by_player or {}
 
     stages: dict[int, list[tuple]] = {}
     for row in stage_results:
@@ -246,6 +248,19 @@ def calculate_leaderboard(
                     'Rider Points': rider_points,
                     'DS Points': ds_points,
                     'Classification Points': classification_points,
+                    'Stage Total': stage_total,
+                }
+            )
+
+        for rest_day_row in ds_rest_day_rows_by_player.get(player, []):
+            stage_total = float(rest_day_row.get('Stage Total', 0) or 0)
+            total_points += stage_total
+            player_breakdown.append(
+                {
+                    'Stage': rest_day_row.get('Stage', 'Rest Day'),
+                    'Rider Points': float(rest_day_row.get('Rider Points', 0) or 0),
+                    'DS Points': float(rest_day_row.get('DS Points', 0) or 0),
+                    'Classification Points': float(rest_day_row.get('Classification Points', 0) or 0),
                     'Stage Total': stage_total,
                 }
             )

@@ -1,6 +1,9 @@
 """
 Main Streamlit application for Giro Fantasy Cycling
 """
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
+
 import streamlit as st
 import pandas as pd
 from difflib import get_close_matches
@@ -13,6 +16,7 @@ from database import (
     get_database_file_info, list_database_backups, create_database_backup, restore_database_backup,
     read_database_backup_bytes, get_current_database_counts, get_backup_database_counts,
     restore_database_from_bytes,
+    upsert_rider_withdrawal, get_rider_withdrawals, delete_rider_withdrawal,
 )
 from config import TEAM_COMPOSITION, PRICE_RANGES, BUDGET_LIMIT, MAX_TRANSFERS, PLAYERS, SEASON_YEAR, PLAYER_PINS
 from pricing import assign_prices
@@ -59,6 +63,168 @@ CLASSIFICATION_LABELS = {
     'mountains': 'Mountain Points',
     'sprints': 'Sprint Points',
 }
+
+RACE_TIMEZONE = ZoneInfo("Europe/Rome")
+FIRST_STAGE_START_LOCAL = datetime(SEASON_YEAR, 5, 8, 14, 0, tzinfo=RACE_TIMEZONE)
+FINAL_STAGE_DATE = date(SEASON_YEAR, 5, 31)
+TRANSFER_CUTOFF_DEFAULT = time(12, 0)
+TRANSFER_OPEN_AFTER_RACE = time(21, 0)
+REST_DAYS = {
+    date(SEASON_YEAR, 5, 11),
+    date(SEASON_YEAR, 5, 18),
+    date(SEASON_YEAR, 5, 25),
+}
+
+
+def _giro_race_dates() -> set[date]:
+    """Return all race dates for the season, excluding configured rest days."""
+    race_dates: set[date] = set()
+    current_day = date(SEASON_YEAR, 5, 8)
+    while current_day <= FINAL_STAGE_DATE:
+        if current_day not in REST_DAYS:
+            race_dates.add(current_day)
+        current_day = date.fromordinal(current_day.toordinal() + 1)
+    return race_dates
+
+
+GIRO_RACE_DATES = _giro_race_dates()
+
+
+def get_game_window_status(now: datetime | None = None) -> dict[str, str | bool]:
+    """Compute whether team selection/transfers are currently open in local Giro time."""
+    now_local = now.astimezone(RACE_TIMEZONE) if now else datetime.now(RACE_TIMEZONE)
+
+    if now_local < FIRST_STAGE_START_LOCAL:
+        return {
+            "team_selection_open": True,
+            "transfers_open": False,
+            "team_selection_message": (
+                f"Team selection is open until {FIRST_STAGE_START_LOCAL.strftime('%d %b %Y %H:%M')} "
+                f"({RACE_TIMEZONE.key})."
+            ),
+            "transfers_message": (
+                "Transfers open after stage 1 has started. "
+                f"First transfer window begins after {FIRST_STAGE_START_LOCAL.strftime('%d %b %Y %H:%M')} "
+                f"({RACE_TIMEZONE.key})."
+            ),
+        }
+
+    current_day = now_local.date()
+    current_time = now_local.time()
+
+    if current_day > FINAL_STAGE_DATE:
+        return {
+            "team_selection_open": False,
+            "transfers_open": False,
+            "team_selection_message": "Team selection is locked after stage 1 start.",
+            "transfers_message": "Transfers are closed because the Giro stage calendar has ended.",
+        }
+
+    if current_day in REST_DAYS:
+        return {
+            "team_selection_open": False,
+            "transfers_open": True,
+            "team_selection_message": "Team selection is locked after stage 1 start.",
+            "transfers_message": "Rest day: transfers are open all day.",
+        }
+
+    if current_day in GIRO_RACE_DATES:
+        # Transfer windows on race days:
+        # - Open from 00:00 to 12:00 (deadline before the stage)
+        # - Closed during race/scoring period from 12:00 to 21:00
+        # - Open again from 21:00 onward
+        if current_time < TRANSFER_CUTOFF_DEFAULT or current_time >= TRANSFER_OPEN_AFTER_RACE:
+            return {
+                "team_selection_open": False,
+                "transfers_open": True,
+                "team_selection_message": "Team selection is locked after stage 1 start.",
+                "transfers_message": (
+                    f"Race day transfer window is open. Daily lock period is "
+                    f"{TRANSFER_CUTOFF_DEFAULT.strftime('%H:%M')}-{TRANSFER_OPEN_AFTER_RACE.strftime('%H:%M')} "
+                    f"({RACE_TIMEZONE.key})."
+                ),
+            }
+
+        return {
+            "team_selection_open": False,
+            "transfers_open": False,
+            "team_selection_message": "Team selection is locked after stage 1 start.",
+            "transfers_message": (
+                f"Race day lock: transfers are closed between "
+                f"{TRANSFER_CUTOFF_DEFAULT.strftime('%H:%M')} and "
+                f"{TRANSFER_OPEN_AFTER_RACE.strftime('%H:%M')} ({RACE_TIMEZONE.key}) "
+                f"to allow stage scoring to be finalized first."
+            ),
+        }
+
+    return {
+        "team_selection_open": False,
+        "transfers_open": True,
+        "team_selection_message": "Team selection is locked after stage 1 start.",
+        "transfers_message": "Transfers are open.",
+    }
+
+
+def _build_ds_rest_day_rows_by_player(
+    player_teams: dict[str, list[tuple]],
+    withdrawals: list[tuple[int, str, int, str, str, str]],
+) -> dict[str, list[dict]]:
+    """Return per-player rest-day DS bonus/penalty rows from withdrawal records."""
+    today_local = datetime.now(RACE_TIMEZONE).date()
+    eligible_rest_days = sorted(day for day in REST_DAYS if day <= today_local)
+    if not eligible_rest_days:
+        return {player: [] for player in PLAYERS}
+
+    withdrawal_events: list[tuple[date, str]] = []
+    for _, withdrawal_date_str, _, _, rider_team, _ in withdrawals:
+        try:
+            withdrawal_day = datetime.fromisoformat(str(withdrawal_date_str)).date()
+        except ValueError:
+            continue
+        withdrawal_events.append((withdrawal_day, rider_team))
+
+    rows_by_player: dict[str, list[dict]] = {}
+    for player in PLAYERS:
+        team_rows = player_teams.get(player, [])
+        ds_row = next((row for row in team_rows if row[3] == 'ds'), None)
+        ds_team = ds_row[2] if ds_row else None
+
+        player_rows: list[dict] = []
+        for idx, rest_day in enumerate(eligible_rest_days, start=1):
+            if ds_team is None:
+                ds_points = 0
+            else:
+                if idx == 1:
+                    withdrawal_count = sum(
+                        1
+                        for withdrawal_day, rider_team in withdrawal_events
+                        if rider_team == ds_team
+                        and FIRST_STAGE_START_LOCAL.date() <= withdrawal_day <= rest_day
+                    )
+                else:
+                    prev_rest_day = eligible_rest_days[idx - 2]
+                    withdrawal_count = sum(
+                        1
+                        for withdrawal_day, rider_team in withdrawal_events
+                        if rider_team == ds_team
+                        and prev_rest_day < withdrawal_day <= rest_day
+                    )
+
+                ds_points = 100 if withdrawal_count == 0 else (-30 * withdrawal_count)
+
+            player_rows.append(
+                {
+                    'Stage': f"Rest Day {idx} ({rest_day.isoformat()})",
+                    'Rider Points': 0,
+                    'DS Points': ds_points,
+                    'Classification Points': 0,
+                    'Stage Total': ds_points,
+                }
+            )
+
+        rows_by_player[player] = player_rows
+
+    return rows_by_player
 
 def read_excel_with_normalized_columns(file_obj):
     """Read an Excel file and normalize column names."""
@@ -253,7 +419,7 @@ def show_home():
         - **Budget**: 15 points per player
         - **Max 2 cyclists per pro team** (excluding DS)
         - **Transfers**: Max 12 total transfers
-        - **Deadline**: Before next stage starts
+        - **Transfer deadline**: 12:00 local time on race days
         """
         )
     
@@ -271,6 +437,28 @@ def show_home():
     
     st.subheader("📅 Race Schedule")
     st.info("Giro d'Italia 2026 starts on May 8th")
+
+    st.subheader("⏱️ Team & Transfer Timing")
+    st.markdown(
+        f"""
+        - **Timezone**: All deadlines use local race time (**{RACE_TIMEZONE.key}**).
+        - **Team Selection**: Open until **08 May {SEASON_YEAR} 14:00**, then locked for the rest of the Giro.
+        - **Transfers before Giro start**: Closed.
+        - **Race days (all 21 stages)**:
+          - Open **00:00-12:00**
+          - Closed **12:00-21:00** (scoring window)
+          - Open again **from 21:00**
+        - **Rest days**: Transfers open all day on **11 May**, **18 May**, and **25 May**.
+        """
+    )
+
+    window_status = get_game_window_status()
+    now_local = datetime.now(RACE_TIMEZONE)
+    st.caption(f"Local race time: {now_local.strftime('%d %b %Y %H:%M')} ({RACE_TIMEZONE.key})")
+    st.write(f"Team selection: {'Open' if window_status['team_selection_open'] else 'Closed'}")
+    st.caption(str(window_status['team_selection_message']))
+    st.write(f"Transfers: {'Open' if window_status['transfers_open'] else 'Closed'}")
+    st.caption(str(window_status['transfers_message']))
     
     st.subheader("👥 Players")
     for idx, player in enumerate(PLAYERS, 1):
@@ -283,6 +471,12 @@ def show_team_selection():
     # Use authenticated player
     player = st.session_state.authenticated_player
     st.write(f"**Player:** {player}")
+
+    window_status = get_game_window_status()
+    if not window_status['team_selection_open']:
+        st.warning(str(window_status['team_selection_message']))
+        st.info("Use Transfers for rider changes during open transfer windows.")
+        return
     
     st.write(f"**Budget: {BUDGET_LIMIT}** (Remaining: TBD)")
     
@@ -607,12 +801,15 @@ def show_leaderboard():
         return
 
     player_teams = {player: get_player_team(player) for player in PLAYERS}
+    withdrawals = get_rider_withdrawals()
+    ds_rest_day_rows_by_player = _build_ds_rest_day_rows_by_player(player_teams, withdrawals)
     leaderboard_rows, breakdown_by_player = calculate_leaderboard(
         players=PLAYERS,
         player_teams=player_teams,
         stage_results=stage_results,
         classification_results=classification_results,
         stage_points=stage_points,
+        ds_rest_day_rows_by_player=ds_rest_day_rows_by_player,
     )
 
     df_leaderboard = pd.DataFrame(leaderboard_rows)
@@ -634,6 +831,12 @@ def show_transfers():
     # Use authenticated player
     player = st.session_state.authenticated_player
     st.write(f"**Player:** {player}")
+
+    window_status = get_game_window_status()
+    st.caption(str(window_status['transfers_message']))
+    if not window_status['transfers_open']:
+        st.warning("Transfers are currently closed.")
+        return
     
     current_team = get_player_team(player)
     transfers_used = count_transfers(player)
@@ -740,6 +943,7 @@ def show_admin():
             "Scrape Riders",
             "Clear Riders",
             "Add Results",
+            "Manage Withdrawals",
             "Override Riders",
             "Database Backup",
             "View Database",
@@ -1490,6 +1694,74 @@ def show_admin():
                     use_container_width=True,
                     height=260,
                 )
+
+    elif admin_page == "Manage Withdrawals":
+        st.subheader("Manage Rider Withdrawals")
+        st.caption(
+            "Use this section to register DNS/withdrawn riders. "
+            "Rest-day DS bonus uses these records by team."
+        )
+
+        riders = get_all_riders()
+        if not riders:
+            st.info("No riders in database yet. Scrape riders first.")
+        else:
+            riders_df = pd.DataFrame(riders, columns=['ID', 'Name', 'Team', 'Category', 'Price', 'Youth'])
+            rider_names = sorted(riders_df['Name'].tolist())
+
+            col_rider, col_date = st.columns(2)
+            with col_rider:
+                selected_rider = st.selectbox("Rider", rider_names, key="withdrawal_rider")
+            with col_date:
+                selected_date = st.date_input(
+                    "Withdrawal date",
+                    value=datetime.now(RACE_TIMEZONE).date(),
+                    key="withdrawal_date",
+                )
+
+            withdrawal_note = st.text_input("Optional note", key="withdrawal_note")
+            if st.button("Save Withdrawal", key="save_withdrawal_btn"):
+                try:
+                    withdrawal_id = upsert_rider_withdrawal(
+                        rider_name=selected_rider,
+                        withdrawal_date=selected_date.isoformat(),
+                        note=withdrawal_note,
+                    )
+                    st.success(f"Saved withdrawal record (id {withdrawal_id}) for {selected_rider}.")
+                except Exception as exc:
+                    st.error(f"Could not save withdrawal: {exc}")
+
+            st.divider()
+            st.markdown("**Recorded Withdrawals**")
+            withdrawal_rows = get_rider_withdrawals()
+            if not withdrawal_rows:
+                st.info("No withdrawals registered yet.")
+            else:
+                withdrawal_df = pd.DataFrame(
+                    withdrawal_rows,
+                    columns=['ID', 'Date', 'Rider ID', 'Rider', 'Team', 'Note'],
+                )
+                st.dataframe(
+                    withdrawal_df[['ID', 'Date', 'Rider', 'Team', 'Note']],
+                    use_container_width=True,
+                    height=260,
+                )
+
+                delete_options = {
+                    int(row['ID']): f"#{int(row['ID'])} | {row['Date']} | {row['Rider']} | {row['Team']}"
+                    for _, row in withdrawal_df.iterrows()
+                }
+                selected_delete_id = st.selectbox(
+                    "Select withdrawal record to delete",
+                    options=list(delete_options.keys()),
+                    format_func=lambda withdrawal_id: delete_options[withdrawal_id],
+                    key="delete_withdrawal_id",
+                )
+                if st.button("Delete Selected Withdrawal", key="delete_withdrawal_btn"):
+                    if delete_rider_withdrawal(int(selected_delete_id)):
+                        st.success("Withdrawal removed.")
+                    else:
+                        st.warning("Withdrawal record not found.")
 
     elif admin_page == "Override Riders":
         st.subheader("Override Rider Category & Price")
