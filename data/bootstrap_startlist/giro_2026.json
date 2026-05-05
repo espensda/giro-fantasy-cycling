@@ -1114,5 +1114,131 @@
     "team": "Soudal Quick-Step",
     "category": "water_carrier",
     "youth": false
+  },
+  {
+    "name": "Alpecin - Premier Tech",
+    "team": "Alpecin - Premier Tech",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Bahrain - Victorious",
+    "team": "Bahrain - Victorious",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Bardiani CSF 7 Saber",
+    "team": "Bardiani CSF 7 Saber",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Decathlon CMA CGM Team",
+    "team": "Decathlon CMA CGM Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "EF Education - EasyPost",
+    "team": "EF Education - EasyPost",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Groupama - FDJ United",
+    "team": "Groupama - FDJ United",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Lidl - Trek",
+    "team": "Lidl - Trek",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Lotto Intermarché",
+    "team": "Lotto Intermarché",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Movistar Team",
+    "team": "Movistar Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "NSN Cycling Team",
+    "team": "NSN Cycling Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Netcompany INEOS Cycling Team",
+    "team": "Netcompany INEOS Cycling Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Pinarello Q36.5 Pro Cycling Team",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Red Bull - BORA - hansgrohe",
+    "team": "Red Bull - BORA - hansgrohe",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Soudal Quick-Step",
+    "team": "Soudal Quick-Step",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Team Picnic PostNL",
+    "team": "Team Picnic PostNL",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Team Polti VisitMalta",
+    "team": "Team Polti VisitMalta",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Team Visma | Lease a Bike",
+    "team": "Team Visma | Lease a Bike",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Tudor Pro Cycling Team",
+    "team": "Tudor Pro Cycling Team",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "UAE Team Emirates - XRG",
+    "team": "UAE Team Emirates - XRG",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Unibet Rose Rockets",
+    "team": "Unibet Rose Rockets",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "XDS Astana Team",
+    "team": "XDS Astana Team",
+    "category": "ds",
+    "youth": false
   }
 ]
