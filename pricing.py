@@ -137,14 +137,105 @@ def _maybe_recategorize_rows(rows: list[dict]) -> list[dict]:
     return updated
 
 
-def assign_prices(rows: list[dict]) -> list[dict]:
-    """Assign prices to rows based on rank within each category.
+def _top20_quality(rank_value) -> float:
+    rank = _safe_float(rank_value)
+    if rank is None:
+        return 0.0
+    if rank <= 0:
+        return 0.0
+    if rank > 20:
+        return 0.0
+    return max(0.0, (21.0 - rank) / 20.0)
 
-    If rows include optional web-derived strength fields (`web_score`, `score`, `uci_points`),
-    those are used to rank riders inside each category before pricing.
+
+def _price_from_quality(category: str, quality: float) -> float:
+    low, high = PRICE_RANGES.get(category, (0.5, 1.0))
+    clamped = max(0.0, min(1.0, float(quality)))
+    return round(low + ((high - low) * clamped), 1)
+
+
+def _enforce_list_categories(rows: list[dict]) -> list[dict]:
+    """Apply strict category rules from list ranks and age when rank metadata exists."""
+    if not any(any(key in row for key in ('gc_rank', 'sprinter_rank', 'climber_rank')) for row in rows):
+        return rows
+
+    updated: list[dict] = []
+    for row in rows:
+        item = dict(row)
+        if str(item.get('category', '')).strip().lower() == 'ds':
+            updated.append(item)
+            continue
+
+        gc_rank = _safe_float(item.get('gc_rank'))
+        spr_rank = _safe_float(item.get('sprinter_rank'))
+        clm_rank = _safe_float(item.get('climber_rank'))
+        age = _safe_float(item.get('age'))
+
+        candidates: list[tuple[str, float]] = []
+        if gc_rank is not None and 0 < gc_rank <= 20:
+            candidates.append(('captain', gc_rank))
+        if spr_rank is not None and 0 < spr_rank <= 20:
+            candidates.append(('sprinter', spr_rank))
+        if clm_rank is not None and 0 < clm_rank <= 20:
+            candidates.append(('climber', clm_rank))
+
+        if candidates:
+            role = sorted(candidates, key=lambda item: item[1])[0][0]
+        elif age is not None and age <= 25:
+            role = 'youth'
+        else:
+            role = 'water_carrier'
+
+        item['category'] = role
+        item['youth'] = role == 'youth'
+        item['role'] = role
+        updated.append(item)
+    return updated
+
+
+def _list_based_quality(row: dict) -> float | None:
+    """Compute quality directly from PCS list placement and age rules."""
+    category = str(row.get('category', '')).strip().lower()
+
+    gc_q = _top20_quality(row.get('gc_rank'))
+    spr_q = _top20_quality(row.get('sprinter_rank'))
+    clm_q = _top20_quality(row.get('climber_rank'))
+    tt_q = _top20_quality(row.get('tt_rank'))
+    classic_q = _top20_quality(row.get('classic_rank'))
+
+    if category == 'captain':
+        return gc_q
+    if category == 'sprinter':
+        return spr_q
+    if category == 'climber':
+        return clm_q
+    if category == 'water_carrier':
+        # Requested behavior: TT/classic top seeds should price highest among water carriers.
+        return min(1.0, max(tt_q, classic_q) + (0.15 * max(gc_q, spr_q, clm_q)))
+    if category == 'youth':
+        age = _safe_float(row.get('age'))
+        if age is None:
+            age_q = 0.35
+        else:
+            age_q = max(0.0, min(1.0, (26.0 - age) / 8.0))
+        return min(1.0, (age_q * 0.8) + (0.2 * max(gc_q, spr_q, clm_q, tt_q, classic_q)))
+    return None
+
+
+def assign_prices(rows: list[dict]) -> list[dict]:
+    """Assign prices to rows based on PCS list placement and category quality.
+
+    With specialty list metadata present (e.g. `gc_rank`, `sprinter_rank`, `climber_rank`,
+    `tt_rank`, `classic_rank`), prices are computed directly from list placement.
+    Otherwise, falls back to rank-within-category blending using available quality scores.
     """
-    recategorized = _maybe_recategorize_rows(rows)
+    recategorized = _enforce_list_categories(_maybe_recategorize_rows(rows))
     normalized_quality = _normalized_quality_map(recategorized)
+
+    has_specialty_ranks = any(
+        any(key in row for key in ('gc_rank', 'sprinter_rank', 'climber_rank', 'tt_rank', 'classic_rank'))
+        for row in recategorized
+    )
 
     category_indices: dict[str, list[int]] = {}
     for index, row in enumerate(recategorized):
@@ -164,6 +255,27 @@ def assign_prices(rows: list[dict]) -> list[dict]:
         return float(-fallback_rank)
 
     prices_by_index: dict[int, float] = {}
+
+    if has_specialty_ranks:
+        for index, row in enumerate(recategorized):
+            category = row.get('category', 'water_carrier')
+            if category == 'ds':
+                prices_by_index[index] = pricing_engine(category)
+                continue
+
+            quality = _list_based_quality(row)
+            if quality is None:
+                prices_by_index[index] = pricing_engine(category)
+            else:
+                prices_by_index[index] = _price_from_quality(category, quality)
+
+        priced_rows = []
+        for index, row in enumerate(recategorized):
+            priced_row = dict(row)
+            priced_row['price'] = prices_by_index.get(index, pricing_engine(row['category']))
+            priced_rows.append(priced_row)
+        return priced_rows
+
     for category, indices in category_indices.items():
         ranked_indices = sorted(
             indices,

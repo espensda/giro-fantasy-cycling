@@ -32,6 +32,23 @@ def _safe_number(value: str) -> float | None:
         return None
 
 
+def _extract_slug_from_href(href: str) -> str:
+    cleaned = str(href or "").strip().lstrip("/")
+    if not cleaned:
+        return ""
+    marker = "rider/"
+    if marker not in cleaned:
+        return ""
+    return cleaned.split(marker, 1)[1].split("?", 1)[0].split("#", 1)[0].strip("/")
+
+
+def _parse_age_text(age_text: str) -> float | None:
+    match = re.search(r"(\d+)(?:y|\s*years?)", str(age_text or ""), flags=re.IGNORECASE)
+    if not match:
+        return None
+    return _safe_number(match.group(1))
+
+
 def _is_known_youth(name: str) -> bool:
     """Best-effort youth detection for sources that omit youth markers (e.g. PDFs)."""
     youth_names = {
@@ -104,6 +121,19 @@ def _normalize_team_rows(rows: list[dict]) -> list[dict]:
 
     normalized: list[dict] = []
     for team_rows in grouped.values():
+        # Preserve explicit role/category assignments when enrichment metadata exists.
+        has_enriched_roles = any(
+            any(key in row for key in ("gc_rank", "sprinter_rank", "climber_rank", "role"))
+            for row in team_rows
+        )
+        if has_enriched_roles:
+            for row in team_rows:
+                item = dict(row)
+                if item.get("category") == "youth":
+                    item["youth"] = True
+                normalized.append(item)
+            continue
+
         non_youth_index = 0
         for row in team_rows:
             if row["category"] == "ds":
@@ -162,6 +192,9 @@ class GiroScraper:
     def _cache_path(self, year: int) -> Path:
         return self.cache_dir / f"giro_{year}.json"
 
+    def _age_cache_path(self, year: int) -> Path:
+        return self.cache_dir / f"giro_{year}_ages.json"
+
     def _save_cache(self, year: int, rows: list[dict]) -> None:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._cache_path(year).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -183,6 +216,53 @@ class GiroScraper:
         if isinstance(data, list):
             return _normalize_team_rows(data)
         return []
+
+    def _load_age_cache(self, year: int) -> dict[str, float]:
+        path = self._age_cache_path(year)
+        if not path.exists():
+            return {}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        cached: dict[str, float] = {}
+        for key, value in data.items():
+            parsed = _safe_number(str(value))
+            if key and parsed is not None and 16 <= float(parsed) <= 50:
+                cached[str(key)] = float(parsed)
+        return cached
+
+    def _save_age_cache(self, year: int, ages_by_slug: dict[str, float]) -> None:
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        path = self._age_cache_path(year)
+        serializable = {key: float(value) for key, value in ages_by_slug.items() if key}
+        path.write_text(json.dumps(serializable, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _fetch_rider_age_by_slug(self, rider_slug: str) -> float | None:
+        if not rider_slug:
+            return None
+        url = f"{self.base_url}/rider/{rider_slug}"
+        try:
+            soup = self._get_soup(url)
+        except requests.RequestException:
+            return None
+
+        for li in soup.select("li"):
+            li_text = " ".join(li.get_text(" ", strip=True).split())
+            if "Date of birth" not in li_text:
+                continue
+            match = re.search(r"\(\s*(\d{1,2})\s*\)", li_text)
+            if match is None:
+                continue
+            age = _safe_number(match.group(1))
+            if age is None:
+                return None
+            if 16 <= age <= 50:
+                return age
+            return None
+        return None
 
     def _stage_results_cache_path(self, year: int, stage_number: int) -> Path:
         return self.results_cache_dir / f"giro_{year}_stage_{stage_number}.json"
@@ -252,6 +332,7 @@ class GiroScraper:
             entries.append(
                 {
                     "name": _normalize_name(rider_link.get_text(" ", strip=True)),
+                    "slug": _extract_slug_from_href(rider_link.get("href", "")),
                     "rank": int(rank_value),
                     "points": float(points_value),
                 }
@@ -281,6 +362,53 @@ class GiroScraper:
                 continue
         return rankings
 
+    def _fetch_youngest_oldest_age_map(self, year: int) -> tuple[dict[str, float], dict[str, float]]:
+        """Fetch available rider ages from the PCS youngest/oldest startlist page."""
+        url = f"{self.base_url}/race/giro-d-italia/{year}/startlist/youngest-oldest"
+        by_slug: dict[str, float] = {}
+        by_name: dict[str, float] = {}
+        try:
+            soup = self._get_soup(url)
+        except requests.RequestException:
+            return by_slug, by_name
+
+        for row in soup.select("tr"):
+            rider_link = row.select_one('a[href*="rider/"]')
+            if rider_link is None:
+                continue
+            cells = [" ".join(cell.get_text(" ", strip=True).split()) for cell in row.select("td")]
+            if not cells:
+                continue
+            age_value = _parse_age_text(cells[-1])
+            if age_value is None:
+                continue
+
+            rider_name = _normalize_name(rider_link.get_text(" ", strip=True))
+            rider_slug = _extract_slug_from_href(rider_link.get("href", ""))
+            if rider_slug:
+                by_slug[rider_slug] = age_value
+            by_name[rider_name] = age_value
+        return by_slug, by_name
+
+    def _fetch_startlist_slug_map(self, year: int) -> dict[str, str]:
+        """Fetch rider slug mapping from alphabetical startlist page."""
+        url = f"{self.base_url}/race/giro-d-italia/{year}/startlist/alphabetical"
+        mapping: dict[str, str] = {}
+        try:
+            soup = self._get_soup(url)
+        except requests.RequestException:
+            return mapping
+
+        for row in soup.select("tr"):
+            rider_link = row.select_one('a[href*="rider/"]')
+            if rider_link is None:
+                continue
+            rider_name = _normalize_name(rider_link.get_text(" ", strip=True))
+            rider_slug = _extract_slug_from_href(rider_link.get("href", ""))
+            if rider_name and rider_slug and rider_name not in mapping:
+                mapping[rider_name] = rider_slug
+        return mapping
+
     def enrich_rows_with_specialty_scores(self, rows: list[dict], year: int) -> list[dict]:
         """Attach specialty-derived role scores for pricing and categorization.
 
@@ -294,19 +422,34 @@ class GiroScraper:
         if not rankings:
             return rows
 
+        slug_by_name = self._fetch_startlist_slug_map(year)
+        age_by_slug, age_by_name = self._fetch_youngest_oldest_age_map(year)
+        cached_ages = self._load_age_cache(year)
+        age_by_slug.update(cached_ages)
+
         # Build percentile maps for each specialty key.
         percentile_by_key: dict[str, dict[str, float]] = {}
+        rank_by_key: dict[str, dict[str, int]] = {}
         for key, entries in rankings.items():
             total = len(entries)
             if total <= 1:
-                percentile_by_key[key] = {entry["name"]: 1.0 for entry in entries}
+                percentile_by_key[key] = {
+                    (entry.get("slug") or entry["name"]): 1.0 for entry in entries
+                }
+                rank_by_key[key] = {
+                    (entry.get("slug") or entry["name"]): int(entry["rank"]) for entry in entries
+                }
                 continue
 
             metric: dict[str, float] = {}
+            ranks: dict[str, int] = {}
             for entry in entries:
                 rank = entry["rank"]
-                metric[entry["name"]] = max(0.0, 1.0 - ((rank - 1) / (total - 1)))
+                identity = entry.get("slug") or entry["name"]
+                metric[identity] = max(0.0, 1.0 - ((rank - 1) / (total - 1)))
+                ranks[identity] = int(rank)
             percentile_by_key[key] = metric
+            rank_by_key[key] = ranks
 
         enriched: list[dict] = []
         for row in rows:
@@ -316,36 +459,72 @@ class GiroScraper:
                 continue
 
             rider_name = _normalize_name(str(item.get("name", "")))
-            gc = percentile_by_key.get("gc", {}).get(rider_name, 0.0)
-            spr = percentile_by_key.get("sprinter", {}).get(rider_name, 0.0)
-            clm = percentile_by_key.get("climber", {}).get(rider_name, 0.0)
-            tt = percentile_by_key.get("tt", {}).get(rider_name, 0.0)
-            cls = percentile_by_key.get("classic", {}).get(rider_name, 0.0)
+            rider_slug = str(item.get("slug") or slug_by_name.get(rider_name, "")).strip()
+            identity_keys = [identity for identity in (rider_slug, rider_name) if identity]
+
+            def _lookup(metric_key: str) -> tuple[float, int | None]:
+                metric = percentile_by_key.get(metric_key, {})
+                ranks = rank_by_key.get(metric_key, {})
+                for identity in identity_keys:
+                    if identity in metric:
+                        return metric[identity], ranks.get(identity)
+                return 0.0, None
+
+            gc, gc_rank = _lookup("gc")
+            spr, spr_rank = _lookup("sprinter")
+            clm, clm_rank = _lookup("climber")
+            tt, tt_rank = _lookup("tt")
+            cls, classic_rank = _lookup("classic")
+
+            rider_age = None
+            if rider_slug:
+                rider_age = age_by_slug.get(rider_slug)
+            if rider_age is None:
+                rider_age = age_by_name.get(rider_name)
+            if rider_age is None and rider_slug:
+                fetched_age = self._fetch_rider_age_by_slug(rider_slug)
+                if fetched_age is not None:
+                    rider_age = fetched_age
+                    age_by_slug[rider_slug] = fetched_age
+
+            candidate_roles: list[tuple[str, int]] = []
+            if isinstance(gc_rank, int) and gc_rank <= 20:
+                candidate_roles.append(("captain", gc_rank))
+            if isinstance(spr_rank, int) and spr_rank <= 20:
+                candidate_roles.append(("sprinter", spr_rank))
+            if isinstance(clm_rank, int) and clm_rank <= 20:
+                candidate_roles.append(("climber", clm_rank))
+
+            if candidate_roles:
+                role = sorted(candidate_roles, key=lambda candidate: candidate[1])[0][0]
+            elif rider_age is not None and rider_age <= 25:
+                role = "youth"
+            else:
+                role = "water_carrier"
 
             captain_score = round((gc * 0.55 + clm * 0.25 + tt * 0.15 + cls * 0.05) * 100, 2)
             sprinter_score = round((spr * 0.65 + cls * 0.2 + tt * 0.1 + gc * 0.05) * 100, 2)
             climber_score = round((clm * 0.6 + gc * 0.3 + tt * 0.1) * 100, 2)
             water_carrier_score = round((cls * 0.35 + tt * 0.25 + gc * 0.2 + spr * 0.2) * 100, 2)
 
-            role_scores = {
-                "captain": captain_score,
-                "sprinter": sprinter_score,
-                "climber": climber_score,
-                "water_carrier": water_carrier_score,
-            }
-            role = max(role_scores.items(), key=lambda entry: entry[1])[0]
-
-            # Keep youth assignments from startlist parsing rules.
-            if item.get("youth"):
-                role = "youth"
-
             item["captain_score"] = captain_score
             item["sprinter_score"] = sprinter_score
             item["climber_score"] = climber_score
             item["water_carrier_score"] = water_carrier_score
             item["role"] = role
+            item["category"] = role
+            item["youth"] = role == "youth"
+            item["age"] = rider_age
+            item["gc_rank"] = gc_rank
+            item["sprinter_rank"] = spr_rank
+            item["climber_rank"] = clm_rank
+            item["tt_rank"] = tt_rank
+            item["classic_rank"] = classic_rank
             item["web_score"] = round(max(captain_score, sprinter_score, climber_score), 2)
             enriched.append(item)
+
+        if age_by_slug:
+            self._save_age_cache(year, age_by_slug)
 
         return enriched
 
@@ -391,6 +570,7 @@ class GiroScraper:
             for block in block_nodes:
                 for rider_link in block.select('a[href^="/rider/"]'):
                     rider_name = _normalize_name(rider_link.get_text(" ", strip=True))
+                    rider_slug = _extract_slug_from_href(rider_link.get("href", ""))
                     if not rider_name:
                         continue
 
@@ -402,6 +582,7 @@ class GiroScraper:
                     rows.append(
                         {
                             "name": rider_name,
+                            "slug": rider_slug,
                             "team": team_name,
                             "category": category,
                             "youth": is_youth,
@@ -1466,10 +1647,18 @@ class GiroScraper:
 
         cached_rows = self._load_cache(year)
         if cached_rows:
+            enriched_cache = self.enrich_rows_with_specialty_scores(cached_rows, year=year)
+            if enriched_cache:
+                self._save_cache(year, enriched_cache)
+                return enriched_cache
             return cached_rows
 
         bootstrap_rows = self._load_bootstrap_startlist(year)
         if bootstrap_rows:
+            enriched_bootstrap = self.enrich_rows_with_specialty_scores(bootstrap_rows, year=year)
+            if enriched_bootstrap:
+                self._save_cache(year, enriched_bootstrap)
+                return enriched_bootstrap
             # Refresh writable cache so the app can continue using local fallback.
             self._save_cache(year, bootstrap_rows)
             return bootstrap_rows
