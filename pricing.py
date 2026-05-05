@@ -54,6 +54,10 @@ def _extract_quality_score(row: dict) -> float | None:
         'score',
         'uci_points',
         'fantasy_score',
+        'captain_score',
+        'sprinter_score',
+        'climber_score',
+        'water_carrier_score',
     ):
         parsed = _safe_float(row.get(key))
         if parsed is not None:

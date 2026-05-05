@@ -22,6 +22,16 @@ def _normalize_name(name: str) -> str:
     return " ".join(name.strip().split()).title()
 
 
+def _safe_number(value: str) -> float | None:
+    cleaned = str(value or "").strip().replace(",", "")
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except (TypeError, ValueError):
+        return None
+
+
 def _is_known_youth(name: str) -> bool:
     """Best-effort youth detection for sources that omit youth markers (e.g. PDFs)."""
     youth_names = {
@@ -221,6 +231,123 @@ class GiroScraper:
         if non_youth_index_in_team in (3, 4):
             return "climber"
         return "water_carrier"
+
+    def _parse_specialty_startlist(self, soup: BeautifulSoup) -> list[dict]:
+        """Parse a PCS specialty startlist page into ranked rider entries."""
+        entries: list[dict] = []
+        for row in soup.select("tr"):
+            rider_link = row.select_one('a[href*="rider/"]')
+            if rider_link is None:
+                continue
+
+            cells = [" ".join(cell.get_text(" ", strip=True).split()) for cell in row.select("td")]
+            if len(cells) < 5:
+                continue
+
+            rank_value = _safe_number(cells[0])
+            points_value = _safe_number(cells[-2])
+            if rank_value is None or points_value is None:
+                continue
+
+            entries.append(
+                {
+                    "name": _normalize_name(rider_link.get_text(" ", strip=True)),
+                    "rank": int(rank_value),
+                    "points": float(points_value),
+                }
+            )
+
+        entries.sort(key=lambda item: item["rank"])
+        return entries
+
+    def _fetch_specialty_rankings(self, year: int) -> dict[str, list[dict]]:
+        """Fetch PCS specialty pages used for rider role and price quality signals."""
+        slugs = {
+            "gc": "top-gc-riders",
+            "sprinter": "sprinters",
+            "climber": "climbers",
+            "tt": "tt-specialists",
+            "classic": "classic-riders",
+        }
+        rankings: dict[str, list[dict]] = {}
+        for key, slug in slugs.items():
+            url = f"{self.base_url}/race/giro-d-italia/{year}/startlist/{slug}"
+            try:
+                soup = self._get_soup(url)
+                parsed = self._parse_specialty_startlist(soup)
+                if parsed:
+                    rankings[key] = parsed
+            except requests.RequestException:
+                continue
+        return rankings
+
+    def enrich_rows_with_specialty_scores(self, rows: list[dict], year: int) -> list[dict]:
+        """Attach specialty-derived role scores for pricing and categorization.
+
+        This enrichment is best-effort and never raises; rows are returned unchanged
+        if specialty pages are unavailable.
+        """
+        if not rows:
+            return rows
+
+        rankings = self._fetch_specialty_rankings(year)
+        if not rankings:
+            return rows
+
+        # Build percentile maps for each specialty key.
+        percentile_by_key: dict[str, dict[str, float]] = {}
+        for key, entries in rankings.items():
+            total = len(entries)
+            if total <= 1:
+                percentile_by_key[key] = {entry["name"]: 1.0 for entry in entries}
+                continue
+
+            metric: dict[str, float] = {}
+            for entry in entries:
+                rank = entry["rank"]
+                metric[entry["name"]] = max(0.0, 1.0 - ((rank - 1) / (total - 1)))
+            percentile_by_key[key] = metric
+
+        enriched: list[dict] = []
+        for row in rows:
+            item = dict(row)
+            if item.get("category") == "ds":
+                enriched.append(item)
+                continue
+
+            rider_name = _normalize_name(str(item.get("name", "")))
+            gc = percentile_by_key.get("gc", {}).get(rider_name, 0.0)
+            spr = percentile_by_key.get("sprinter", {}).get(rider_name, 0.0)
+            clm = percentile_by_key.get("climber", {}).get(rider_name, 0.0)
+            tt = percentile_by_key.get("tt", {}).get(rider_name, 0.0)
+            cls = percentile_by_key.get("classic", {}).get(rider_name, 0.0)
+
+            captain_score = round((gc * 0.55 + clm * 0.25 + tt * 0.15 + cls * 0.05) * 100, 2)
+            sprinter_score = round((spr * 0.65 + cls * 0.2 + tt * 0.1 + gc * 0.05) * 100, 2)
+            climber_score = round((clm * 0.6 + gc * 0.3 + tt * 0.1) * 100, 2)
+            water_carrier_score = round((cls * 0.35 + tt * 0.25 + gc * 0.2 + spr * 0.2) * 100, 2)
+
+            role_scores = {
+                "captain": captain_score,
+                "sprinter": sprinter_score,
+                "climber": climber_score,
+                "water_carrier": water_carrier_score,
+            }
+            role = max(role_scores.items(), key=lambda entry: entry[1])[0]
+
+            # Keep youth assignments from startlist parsing rules.
+            if item.get("youth"):
+                role = "youth"
+
+            item["captain_score"] = captain_score
+            item["sprinter_score"] = sprinter_score
+            item["climber_score"] = climber_score
+            item["water_carrier_score"] = water_carrier_score
+            item["role"] = role
+            item["web_score"] = round(max(captain_score, sprinter_score, climber_score), 2)
+            enriched.append(item)
+
+        return enriched
 
     def _parse_startlist_rows(self, soup: BeautifulSoup, year: int) -> list[dict]:
         """Parse team blocks by scanning team links and following rider/staff links in order."""
@@ -1320,6 +1447,7 @@ class GiroScraper:
             soup = self._get_soup(url)
             rows = self._parse_startlist_rows(soup, year=year)
             if rows:
+                rows = self.enrich_rows_with_specialty_scores(rows, year=year)
                 self._save_cache(year, rows)
                 return rows
         except requests.RequestException as exc:
@@ -1329,6 +1457,7 @@ class GiroScraper:
             text = self._get_jina_text(url)
             rows = self._parse_startlist_markdown(text, year=year)
             if rows:
+                rows = self.enrich_rows_with_specialty_scores(rows, year=year)
                 self._save_cache(year, rows)
                 return rows
             errors.append("mirror fetch: no parseable rows")

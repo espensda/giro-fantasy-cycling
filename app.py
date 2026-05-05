@@ -290,6 +290,7 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
     captain_score_by_name: dict[str, float] = {}
     sprinter_score_by_name: dict[str, float] = {}
     climber_score_by_name: dict[str, float] = {}
+    water_carrier_score_by_name: dict[str, float] = {}
 
     for _, record in normalized.iterrows():
         key = _name_key(str(record.get("name", "")))
@@ -315,6 +316,7 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
             ("captain_score", captain_score_by_name),
             ("sprinter_score", sprinter_score_by_name),
             ("climber_score", climber_score_by_name),
+            ("water_carrier_score", water_carrier_score_by_name),
         ):
             score_hint = record.get(column)
             if score_hint is None or str(score_hint).strip() == "":
@@ -341,6 +343,8 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
             item["sprinter_score"] = sprinter_score_by_name[key]
         if key in climber_score_by_name:
             item["climber_score"] = climber_score_by_name[key]
+        if key in water_carrier_score_by_name:
+            item["water_carrier_score"] = water_carrier_score_by_name[key]
         enriched.append(item)
 
     return enriched
@@ -996,7 +1000,8 @@ def show_admin():
         st.subheader("Scrape Riders from Web")
         st.caption(
             "Optional: upload a web ratings CSV with columns `name, score` and optional `category`, `role`, "
-            "`captain_score`, `sprinter_score`, `climber_score` to improve pricing and role assignment during import."
+            "`captain_score`, `sprinter_score`, `climber_score`, `water_carrier_score` "
+            "to improve pricing and role assignment during import."
         )
         web_ratings_file = st.file_uploader(
             "Web ratings CSV (optional)",
@@ -1056,6 +1061,7 @@ def show_admin():
                 pdf_bytes = pcs_pdf_file.read()
                 scraper = GiroScraper()
                 parsed_rows = scraper.parse_startlist_pdf_bytes(pdf_bytes)
+                parsed_rows = scraper.enrich_rows_with_specialty_scores(parsed_rows, year=int(pcs_pdf_year))
                 if not parsed_rows:
                     st.error("No riders were parsed from this PDF file. Check that it is the PCS startlist PDF.")
                 else:
