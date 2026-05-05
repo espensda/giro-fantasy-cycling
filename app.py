@@ -29,22 +29,28 @@ st.set_page_config(page_title="Giro Fantasy Cycling", layout="wide")
 # Initialize session state
 if 'db_initialized' not in st.session_state:
     init_db()
-    # Auto-seed riders from bootstrap if the DB is empty (e.g. fresh cloud deploy)
-    if not get_all_riders():
-        try:
-            scraper = GiroScraper()
-            rows = scraper.scrape_giro_startlist(year=SEASON_YEAR)
-            for row in rows:
+    # Keep cloud deployments aligned with the committed season bootstrap roster.
+    # If DB riders differ from the current bootstrap names, replace rider data so
+    # the app reflects the latest deployed startlist without manual admin import.
+    try:
+        scraper = GiroScraper()
+        bootstrap_rows = scraper.scrape_giro_startlist(year=SEASON_YEAR)
+        bootstrap_names = {row.get('name', '') for row in bootstrap_rows if row.get('name')}
+        existing_rows = get_all_riders()
+        existing_names = {row[1] for row in existing_rows}
+
+        if bootstrap_names and bootstrap_names != existing_names:
+            clear_riders()
+            for row in assign_prices(bootstrap_rows):
                 add_rider(
                     name=row['name'],
                     team=row.get('team', ''),
                     category=row.get('category', 'water_carrier'),
                     price=row.get('price', 0),
-                    is_youth=row.get('is_youth', False),
+                    youth=row.get('youth', False),
                 )
-            assign_prices(get_all_riders())
-        except Exception:
-            pass  # silently skip; admin can trigger manually
+    except Exception:
+        pass  # silently skip; admin can trigger manually
     st.session_state.db_initialized = True
 
 
