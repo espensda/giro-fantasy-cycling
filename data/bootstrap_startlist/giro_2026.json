@@ -1,1057 +1,1117 @@
 [
   {
-    "name": "Pogacar Tadej",
-    "team": "UAE Team Emirates",
+    "name": "De Lie Arnaud",
+    "team": "Lotto Intermarché",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Aerts Toon",
+    "team": "Lotto Intermarché",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "De Buyst Jasper",
+    "team": "Lotto Intermarché",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Gualdi Simone",
+    "team": "Lotto Intermarché",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Kockelmann Mathieu",
+    "team": "Lotto Intermarché",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Menten Milan",
+    "team": "Lotto Intermarché",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Rota Lorenzo",
+    "team": "Lotto Intermarché",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Rutsch Jonas",
+    "team": "Lotto Intermarché",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Groves Kaden",
+    "team": "Alpecin - Premier Tech",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Almeida Joao",
-    "team": "UAE Team Emirates",
+    "name": "Bayer Tobias",
+    "team": "Alpecin - Premier Tech",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Busatto Francesco",
+    "team": "Alpecin - Premier Tech",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Geens Jonas",
+    "team": "Alpecin - Premier Tech",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Planckaert Edward",
+    "team": "Alpecin - Premier Tech",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Plowright Jensen",
+    "team": "Alpecin - Premier Tech",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Price-Pejtersen Johan",
+    "team": "Alpecin - Premier Tech",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Vergallito Luca",
+    "team": "Alpecin - Premier Tech",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Buitrago Santiago",
+    "team": "Bahrain - Victorious",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Ayuso Juan",
-    "team": "UAE Team Emirates",
+    "name": "Caruso Damiano",
+    "team": "Bahrain - Victorious",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Soler Marc",
-    "team": "UAE Team Emirates",
+    "name": "Stannard Robert",
+    "team": "Bahrain - Victorious",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Del Toro Isaac",
-    "team": "UAE Team Emirates",
+    "name": "Miholjevic Fran",
+    "team": "Bahrain - Victorious",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Soto Alvaro",
-    "team": "UAE Team Emirates",
+    "name": "Eulalio Afonso",
+    "team": "Bahrain - Victorious",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Paasschens Mathijs",
+    "team": "Bahrain - Victorious",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Ulissi Diego",
-    "team": "UAE Team Emirates",
+    "name": "Segaert Alec",
+    "team": "Bahrain - Victorious",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Dombrowski Kamil",
-    "team": "UAE Team Emirates",
+    "name": "Zambanini Edoardo",
+    "team": "Bahrain - Victorious",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Roglic Primoz",
-    "team": "Visma - Lease a Bike",
+    "name": "Tsvetkov Nikita",
+    "team": "Bardiani CSF 7 Saber",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Van Aert Wout",
-    "team": "Visma - Lease a Bike",
+    "name": "Magli Filippo",
+    "team": "Bardiani CSF 7 Saber",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Kuss Sepp",
-    "team": "Visma - Lease a Bike",
+    "name": "Marcellusi Martin",
+    "team": "Bardiani CSF 7 Saber",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Van den Berg Maarten",
-    "team": "Visma - Lease a Bike",
+    "name": "Rojas Vicente",
+    "team": "Bardiani CSF 7 Saber",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Benoot Tiesj",
-    "team": "Visma - Lease a Bike",
+    "name": "Paletti Luca",
+    "team": "Bardiani CSF 7 Saber",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Tarozzi Manuele",
+    "team": "Bardiani CSF 7 Saber",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Groenewegen Dylan",
-    "team": "Visma - Lease a Bike",
+    "name": "Turconi Filippo",
+    "team": "Bardiani CSF 7 Saber",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Teunissen Mike",
-    "team": "Visma - Lease a Bike",
+    "name": "Zanoncello Enrico",
+    "team": "Bardiani CSF 7 Saber",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Smeets Niki",
-    "team": "Visma - Lease a Bike",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Landa Mikel",
-    "team": "Soudal - QuickStep",
+    "name": "Gall Felix",
+    "team": "Decathlon CMA CGM Team",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Cavagna Davide",
-    "team": "Soudal - QuickStep",
+    "name": "Andresen Tobias Lund",
+    "team": "Decathlon CMA CGM Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Evenepoel Remco",
-    "team": "Soudal - QuickStep",
+    "name": "Gudmestad Tord",
+    "team": "Decathlon CMA CGM Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Hirt Jan",
-    "team": "Soudal - QuickStep",
+    "name": "Muhlberger Gregor",
+    "team": "Decathlon CMA CGM Team",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Mäder Gino",
-    "team": "Soudal - QuickStep",
+    "name": "Naesen Oliver",
+    "team": "Decathlon CMA CGM Team",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Henao Sergio",
-    "team": "Soudal - QuickStep",
+    "name": "Pedersen Rasmus Sojberg",
+    "team": "Decathlon CMA CGM Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Oomen Sam",
-    "team": "Soudal - QuickStep",
+    "name": "Scotson Callum",
+    "team": "Decathlon CMA CGM Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Declercq Tim",
-    "team": "Soudal - QuickStep",
+    "name": "Staune-Mittet Johannes",
+    "team": "Decathlon CMA CGM Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Cavagna Remi",
+    "team": "Groupama - FDJ United",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Barthe Cyril",
+    "team": "Groupama - FDJ United",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Huens Axel",
+    "team": "Groupama - FDJ United",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Jacobs Johan",
+    "team": "Groupama - FDJ United",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Kench Josh",
+    "team": "Groupama - FDJ United",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Penhoet Paul",
+    "team": "Groupama - FDJ United",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Rochas Remy",
+    "team": "Groupama - FDJ United",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Rolland Brieuc",
+    "team": "Groupama - FDJ United",
     "category": "water_carrier",
     "youth": false
   },
   {
     "name": "Bernal Egan",
-    "team": "Ineos Grenadiers",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Sivakov Pavel",
-    "team": "Ineos Grenadiers",
+    "name": "Arensman Thymen",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Tarling Joshua",
-    "team": "Ineos Grenadiers",
+    "name": "Ganna Filippo",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Pidcock Tom",
-    "team": "Ineos Grenadiers",
+    "name": "Haig Jack",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Rowe Luke",
-    "team": "Ineos Grenadiers",
+    "name": "Sheffield Magnus",
+    "team": "Netcompany INEOS Cycling Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Svestad-Bardseng Embret",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Geoghegan Hart Laurens",
-    "team": "Ineos Grenadiers",
+    "name": "Swift Connor",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Foss Tobias",
-    "team": "Ineos Grenadiers",
+    "name": "Turner Ben",
+    "team": "Netcompany INEOS Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Castroviejo Jonatan",
-    "team": "Ineos Grenadiers",
+    "name": "Ciccone Giulio",
+    "team": "Lidl - Trek",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Consonni Simone",
+    "team": "Lidl - Trek",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Gee-West Derek",
+    "team": "Lidl - Trek",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Ghebreigzabhier Amanuel",
+    "team": "Lidl - Trek",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Milan Jonathan",
+    "team": "Lidl - Trek",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Sobrero Matteo",
+    "team": "Lidl - Trek",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Teutenberg Tim Torn",
+    "team": "Lidl - Trek",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Walscheid Max",
+    "team": "Lidl - Trek",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Garcia Cortina Ivan",
+    "team": "Movistar Team",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Aular Orluis",
+    "team": "Movistar Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Lopez Juan Pedro",
+    "team": "Movistar Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Mas Enric",
+    "team": "Movistar Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Milesi Lorenzo",
+    "team": "Movistar Team",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Oliveira Nelson",
+    "team": "Movistar Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Romo Javier",
+    "team": "Movistar Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Rubio Einer",
+    "team": "Movistar Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Pinarello Alessandro",
+    "team": "NSN Cycling Team",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Hirt Jan",
+    "team": "NSN Cycling Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Mullen Ryan",
+    "team": "NSN Cycling Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Schultz Nick",
+    "team": "NSN Cycling Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Smith Dion",
+    "team": "NSN Cycling Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Stewart Jake",
+    "team": "NSN Cycling Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Strong Corbin",
+    "team": "NSN Cycling Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Vernon Ethan",
+    "team": "NSN Cycling Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Bax Sjoerd",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Christen Fabio",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "De La Cruz David",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Donovan Mark",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Gonzalez David",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Harper Chris",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Moschetti Matteo",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Zukowsky Nickolas",
+    "team": "Pinarello Q36.5 Pro Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
     "name": "Hindley Jai",
-    "team": "Red Bull - Bora - Hansgrohe",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Weng Johannes",
-    "team": "Red Bull - Bora - Hansgrohe",
+    "name": "Aleotti Giovanni",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Gall Lennard",
-    "team": "Red Bull - Bora - Hansgrohe",
+    "name": "Moscon Gianni",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Martinez Daniel",
-    "team": "Red Bull - Bora - Hansgrohe",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Teuns Jasper",
-    "team": "Red Bull - Bora - Hansgrohe",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Narvaez Jhoan",
-    "team": "Red Bull - Bora - Hansgrohe",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Gogl Michael",
-    "team": "Red Bull - Bora - Hansgrohe",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Kolar Matej",
-    "team": "Red Bull - Bora - Hansgrohe",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bettiol Alberto",
-    "team": "EF Education - EasyPost",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Carapaz Richard",
-    "team": "EF Education - EasyPost",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Carthy Hugh",
-    "team": "EF Education - EasyPost",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Tanfield Charlie",
-    "team": "EF Education - EasyPost",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Stenqvist Tobias",
-    "team": "EF Education - EasyPost",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Schachmann Maximilian",
-    "team": "EF Education - EasyPost",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Oomen Sam",
-    "team": "EF Education - EasyPost",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Breschel Matti",
-    "team": "EF Education - EasyPost",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Caruso Damiano",
-    "team": "Bahrain Victorious",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Bais Matteo",
-    "team": "Bahrain Victorious",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Sconi Simone",
-    "team": "Bahrain Victorious",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Palladino Nico",
-    "team": "Bahrain Victorious",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Stransky Pavel",
-    "team": "Bahrain Victorious",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Vacek David",
-    "team": "Bahrain Victorious",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bierman Egan",
-    "team": "Bahrain Victorious",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Affini Edoardo",
-    "team": "Bahrain Victorious",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Vlasov Alexander",
-    "team": "Astana Qazaqstan",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Gogna Andres",
-    "team": "Astana Qazaqstan",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Lutsenko Alexey",
-    "team": "Astana Qazaqstan",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Grivko Andriy",
-    "team": "Astana Qazaqstan",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Maestri Mirco",
-    "team": "Astana Qazaqstan",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Gruzdev Dmitry",
-    "team": "Astana Qazaqstan",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Nikles Dario",
-    "team": "Astana Qazaqstan",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bobrenko Denis",
-    "team": "Astana Qazaqstan",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Pinot Thibaut",
-    "team": "Groupama - FDJ",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Bidard Francois",
-    "team": "Groupama - FDJ",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Morabito Juan Sebastian",
-    "team": "Groupama - FDJ",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Martial Pierrick",
-    "team": "Groupama - FDJ",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Guilloux Olivier",
-    "team": "Groupama - FDJ",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Voeckler Thomas",
-    "team": "Groupama - FDJ",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Eenkhoorn Pascal",
-    "team": "Groupama - FDJ",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Tixier Anthony",
-    "team": "Groupama - FDJ",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Yates Simon",
-    "team": "Lidl - Trek",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Skujins Toms",
-    "team": "Lidl - Trek",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Sconi Simone",
-    "team": "Lidl - Trek",
-    "category": "climber",
-    "youth": false
-  },
-  {
-    "name": "Villella Davide",
-    "team": "Lidl - Trek",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Kamp Bram",
-    "team": "Lidl - Trek",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Schmid Mauro",
-    "team": "Lidl - Trek",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Barmettler Dominik",
-    "team": "Lidl - Trek",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Stiles Jacques",
-    "team": "Lidl - Trek",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Schwarzmann Michael",
-    "team": "Lotto Dstny",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "De Gendt Thomas",
-    "team": "Lotto Dstny",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Leemans Sander",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Goos Koen",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Stockman Geert",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Van Houten Nick",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Manzin Guillaume",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Ludvigsson Tobias",
-    "team": "Lotto Dstny",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Girmay Biniam",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Affini Edoardo",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Karpenko Valentyn",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Honoré Alexander",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bonfant Matteo",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Laporte Christophe",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Ballerini Davide",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Gamper Patrick",
-    "team": "Intermarche - Circus - Wanty",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Pedrero Antonio",
-    "team": "Movistar Team",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Rubio Hermoso Einer",
-    "team": "Movistar Team",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Mapache Miguel",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Perez Moreno Jose",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Malucelli Mattia",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Erviti Imanol",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Aranabar Alexis",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Izagirre Gorka",
-    "team": "Movistar Team",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Barguil Warren",
-    "team": "Cofidis",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Gesbert Elie",
-    "team": "Cofidis",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Gougeard Alexis",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Cras Stef",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Coquard Bryan",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Armirail Bruno",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Touze Matteo",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Hueso Albert",
-    "team": "Cofidis",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Oviedo Egan",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "captain",
-    "youth": false
-  },
-  {
-    "name": "Cepeda Janier",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Carvalho Itamar",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bernal Angel",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Gutierrez Jelle",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Samitier Jorge",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Fernandez Belarmino",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Sanchez Luis",
-    "team": "Caja Rural - Seguros RGA",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Vansevenant Mauri",
-    "team": "DSM - Firmenich PostNL",
+    "name": "Pellizzari Giulio",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "youth",
     "youth": true
   },
   {
-    "name": "Eekhoff Anna",
-    "team": "DSM - Firmenich PostNL",
-    "category": "sprinter",
-    "youth": false
-  },
-  {
-    "name": "Tratnik Peter",
-    "team": "DSM - Firmenich PostNL",
+    "name": "Tuckwell Luke",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Molnar Attila",
-    "team": "DSM - Firmenich PostNL",
+    "name": "Van Dijke Mick",
+    "team": "Red Bull - BORA - hansgrohe",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Vlasov Aleksandr",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Vanbilsen Thijs",
-    "team": "DSM - Firmenich PostNL",
+    "name": "Zwiehoff Ben",
+    "team": "Red Bull - BORA - hansgrohe",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Debacker Jelle",
-    "team": "DSM - Firmenich PostNL",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Tusveld Martijn",
-    "team": "DSM - Firmenich PostNL",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "De Buyst Jonas",
-    "team": "DSM - Firmenich PostNL",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Formolo Davide",
-    "team": "Decathlon - AG2R",
+    "name": "O'Connor Ben",
+    "team": "Team Jayco AlUla",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Viviani Elia",
-    "team": "Decathlon - AG2R",
+    "name": "Ackermann Pascal",
+    "team": "Team Jayco AlUla",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Cherhal Clement",
-    "team": "Decathlon - AG2R",
+    "name": "Bouwman Koen",
+    "team": "Team Jayco AlUla",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Donaldson Robert",
+    "team": "Team Jayco AlUla",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Engelhardt Felix",
+    "team": "Team Jayco AlUla",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Hatherly Alan",
+    "team": "Team Jayco AlUla",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Morel Gianni",
-    "team": "Decathlon - AG2R",
+    "name": "Juul-Jensen Christopher",
+    "team": "Team Jayco AlUla",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Grondahl Brynjolur",
-    "team": "Decathlon - AG2R",
+    "name": "Vendrame Andrea",
+    "team": "Team Jayco AlUla",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Porsev Laurent",
-    "team": "Decathlon - AG2R",
-    "category": "water_carrier",
+    "name": "Team Jayco AlUla",
+    "team": "Team Jayco AlUla",
+    "category": "ds",
     "youth": false
   },
   {
-    "name": "Bouvier Loic",
-    "team": "Decathlon - AG2R",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Bonnet Enrique",
-    "team": "Decathlon - AG2R",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Carbone Giuseppe",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Farinetti Stefano",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Ista Gio",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Visconti Giovanni",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Caruso Damiano",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Rossi Matteo",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Marino Mauro",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Boaro Mauro",
-    "team": "Androni Giocattoli",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Pogacar Tadej B0",
-    "team": "UAE Team Emirates",
+    "name": "De Jong Timo",
+    "team": "Team Picnic PostNL",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Almeida Joao B1",
-    "team": "UAE Team Emirates",
+    "name": "Flynn Sean",
+    "team": "Team Picnic PostNL",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Hamilton Chris",
+    "team": "Team Picnic PostNL",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Knox James",
+    "team": "Team Picnic PostNL",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Leemreize Gijs",
+    "team": "Team Picnic PostNL",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Naberman Tim",
+    "team": "Team Picnic PostNL",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Van Den Broek Frank",
+    "team": "Team Picnic PostNL",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Van Uden Casper",
+    "team": "Team Picnic PostNL",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Bais Mattia",
+    "team": "Team Polti VisitMalta",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Ayuso Juan B2",
-    "team": "UAE Team Emirates",
+    "name": "Crescioli Ludovico",
+    "team": "Team Polti VisitMalta",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Soler Marc B3",
-    "team": "UAE Team Emirates",
+    "name": "Lonardi Giovanni",
+    "team": "Team Polti VisitMalta",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Del Toro Isaac B4",
-    "team": "UAE Team Emirates",
+    "name": "Maestri Mirco",
+    "team": "Team Polti VisitMalta",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Soto Alvaro B5",
-    "team": "UAE Team Emirates",
+    "name": "Mifsud Andrea",
+    "team": "Team Polti VisitMalta",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Ulissi Diego B6",
-    "team": "UAE Team Emirates",
+    "name": "Pesenti Thomas",
+    "team": "Team Polti VisitMalta",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Dombrowski Kamil B7",
-    "team": "UAE Team Emirates",
+    "name": "Tonelli Alessandro",
+    "team": "Team Polti VisitMalta",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Roglic Primoz B8",
-    "team": "Visma - Lease a Bike",
+    "name": "Sevilla Diego Pablo",
+    "team": "Team Polti VisitMalta",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Vingegaard Jonas",
+    "team": "Team Visma | Lease a Bike",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Van Aert Wout B9",
-    "team": "Visma - Lease a Bike",
+    "name": "Campenaerts Victor",
+    "team": "Team Visma | Lease a Bike",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Kuss Sepp B10",
-    "team": "Visma - Lease a Bike",
+    "name": "Kelderman Wilco",
+    "team": "Team Visma | Lease a Bike",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Van den Berg Maarten B11",
-    "team": "Visma - Lease a Bike",
+    "name": "Kielich Timo",
+    "team": "Team Visma | Lease a Bike",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Kuss Sepp",
+    "team": "Team Visma | Lease a Bike",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Benoot Tiesj B12",
-    "team": "Visma - Lease a Bike",
+    "name": "Lemmen Bart",
+    "team": "Team Visma | Lease a Bike",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Piganzoli Davide",
+    "team": "Team Visma | Lease a Bike",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Rex Tim",
+    "team": "Team Visma | Lease a Bike",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Groenewegen Dylan B13",
-    "team": "Visma - Lease a Bike",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Teunissen Mike B14",
-    "team": "Visma - Lease a Bike",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Smeets Niki B15",
-    "team": "Visma - Lease a Bike",
-    "category": "water_carrier",
-    "youth": false
-  },
-  {
-    "name": "Landa Mikel B16",
-    "team": "Soudal - QuickStep",
+    "name": "Lienhard Fabian",
+    "team": "Tudor Pro Cycling Team",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Cavagna Davide B17",
-    "team": "Soudal - QuickStep",
+    "name": "Barta Will",
+    "team": "Tudor Pro Cycling Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Evenepoel Remco B18",
-    "team": "Soudal - QuickStep",
+    "name": "Froidevaux Robin",
+    "team": "Tudor Pro Cycling Team",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Hirt Jan B19",
-    "team": "Soudal - QuickStep",
+    "name": "Mozzato Luca",
+    "team": "Tudor Pro Cycling Team",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Mäder Gino B20",
-    "team": "Soudal - QuickStep",
+    "name": "Rondel Mathys",
+    "team": "Tudor Pro Cycling Team",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Henao Sergio B21",
-    "team": "Soudal - QuickStep",
+    "name": "Storer Michael",
+    "team": "Tudor Pro Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Oomen Sam B22",
-    "team": "Soudal - QuickStep",
+    "name": "Stork Florian",
+    "team": "Tudor Pro Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Declercq Tim B23",
-    "team": "Soudal - QuickStep",
+    "name": "Warbasse Larry",
+    "team": "Tudor Pro Cycling Team",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Bernal Egan B24",
-    "team": "Ineos Grenadiers",
+    "name": "Bjerg Mikkel",
+    "team": "UAE Team Emirates - XRG",
     "category": "captain",
     "youth": false
   },
   {
-    "name": "Sivakov Pavel B25",
-    "team": "Ineos Grenadiers",
+    "name": "Arrieta Igor",
+    "team": "UAE Team Emirates - XRG",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Christen Jan",
+    "team": "UAE Team Emirates - XRG",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Tarling Joshua B26",
-    "team": "Ineos Grenadiers",
+    "name": "Narvaez Jhonatan",
+    "team": "UAE Team Emirates - XRG",
     "category": "sprinter",
     "youth": false
   },
   {
-    "name": "Pidcock Tom B27",
-    "team": "Ineos Grenadiers",
+    "name": "Soler Marc",
+    "team": "UAE Team Emirates - XRG",
     "category": "climber",
     "youth": false
   },
   {
-    "name": "Rowe Luke B28",
-    "team": "Ineos Grenadiers",
+    "name": "Morgado Antonio",
+    "team": "UAE Team Emirates - XRG",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Vine Jay",
+    "team": "UAE Team Emirates - XRG",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Geoghegan Hart Laurens B29",
-    "team": "Ineos Grenadiers",
+    "name": "Yates Adam",
+    "team": "UAE Team Emirates - XRG",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Foss Tobias B30",
-    "team": "Ineos Grenadiers",
+    "name": "Groenewegen Dylan",
+    "team": "Unibet Rose Rockets",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "De Vries Hartthijs",
+    "team": "Unibet Rose Rockets",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Kopecky Matyas",
+    "team": "Unibet Rose Rockets",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Kopecky Tomas",
+    "team": "Unibet Rose Rockets",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Kubis Lukas",
+    "team": "Unibet Rose Rockets",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Larsen Niklas",
+    "team": "Unibet Rose Rockets",
     "category": "water_carrier",
     "youth": false
   },
   {
-    "name": "Castroviejo Jonatan B31",
-    "team": "Ineos Grenadiers",
+    "name": "Poels Wout",
+    "team": "Unibet Rose Rockets",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Reinders Elmar",
+    "team": "Unibet Rose Rockets",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Hoelgaard Markus",
+    "team": "Uno-X Mobility",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Holter Adne",
+    "team": "Uno-X Mobility",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Kulset Johannes",
+    "team": "Uno-X Mobility",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Dversnes Lavik Fredrik",
+    "team": "Uno-X Mobility",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Leknessund Andreas",
+    "team": "Uno-X Mobility",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Blikra Erlend",
+    "team": "Uno-X Mobility",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Loland Sakarias Koller",
+    "team": "Uno-X Mobility",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Tjotta Martin",
+    "team": "Uno-X Mobility",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Uno-X Mobility",
+    "team": "Uno-X Mobility",
+    "category": "ds",
+    "youth": false
+  },
+  {
+    "name": "Ballerini Davide",
+    "team": "XDS Astana Team",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Bettiol Alberto",
+    "team": "XDS Astana Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Livyns Arjen",
+    "team": "XDS Astana Team",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Lopez Harold Martin",
+    "team": "XDS Astana Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Malucelli Matteo",
+    "team": "XDS Astana Team",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Scaroni Christian",
+    "team": "XDS Astana Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Silva Guillermo Thomas",
+    "team": "XDS Astana Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Ulissi Diego",
+    "team": "XDS Astana Team",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Battistella Samuele",
+    "team": "EF Education - EasyPost",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Cepeda Jefferson Alexander",
+    "team": "EF Education - EasyPost",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Quinn Sean",
+    "team": "EF Education - EasyPost",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Rafferty Darren",
+    "team": "EF Education - EasyPost",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Shaw James",
+    "team": "EF Education - EasyPost",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Valgren Michael",
+    "team": "EF Education - EasyPost",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Van Der Lee Jardi Christiaan",
+    "team": "EF Education - EasyPost",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "Bastiaens Ayco",
+    "team": "Soudal Quick-Step",
+    "category": "captain",
+    "youth": false
+  },
+  {
+    "name": "Garofoli Gianmarco",
+    "team": "Soudal Quick-Step",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Magnier Paul",
+    "team": "Soudal Quick-Step",
+    "category": "youth",
+    "youth": true
+  },
+  {
+    "name": "Raccagni Noviero Andrea",
+    "team": "Soudal Quick-Step",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Stuyven Jasper",
+    "team": "Soudal Quick-Step",
+    "category": "sprinter",
+    "youth": false
+  },
+  {
+    "name": "Van Gestel Dries",
+    "team": "Soudal Quick-Step",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "Zana Filippo",
+    "team": "Soudal Quick-Step",
+    "category": "climber",
+    "youth": false
+  },
+  {
+    "name": "TBD Rider #41 (EF)",
+    "team": "EF Education - EasyPost",
+    "category": "water_carrier",
+    "youth": false
+  },
+  {
+    "name": "TBD Rider #131 (Soudal)",
+    "team": "Soudal Quick-Step",
     "category": "water_carrier",
     "youth": false
   }
