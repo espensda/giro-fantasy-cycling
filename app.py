@@ -1,7 +1,9 @@
 """
 Main Streamlit application for Giro Fantasy Cycling
 """
+import json
 from datetime import date, datetime, time
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import streamlit as st
@@ -971,6 +973,22 @@ def show_transfers():
         add_transfer(player, rider_out, rider_in)
         st.success("Transfer confirmed and saved.")
 
+def _patch_bootstrap_name(old_name: str, new_name: str, year: int) -> None:
+    """Rename a rider in the bootstrap JSON so auto-sync keeps the new name."""
+    bootstrap_path = Path(__file__).parent / "data" / "bootstrap_startlist" / f"giro_{year}.json"
+    if not bootstrap_path.exists():
+        return
+    try:
+        rows = json.loads(bootstrap_path.read_text(encoding="utf-8"))
+        for row in rows:
+            if row.get("name") == old_name:
+                row["name"] = new_name
+                break
+        bootstrap_path.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass  # non-critical; worst case is auto-sync reverts on next restart
+
+
 def show_admin():
     """Admin panel for managing riders and results"""
     st.header("⚙️ Admin Panel")
@@ -1848,8 +1866,11 @@ def show_admin():
                 selected_name = st.selectbox("Select rider to edit", rider_names)
                 selected_row = filtered_df[filtered_df['Name'] == selected_name].iloc[0]
 
+                current_name = str(selected_row['Name'])
                 current_category = str(selected_row['Category'])
                 current_price = float(selected_row['Price'])
+
+                new_name = st.text_input("Override name", value=current_name)
 
                 category_options = TEAM_CATEGORY_ORDER
                 default_category_index = category_options.index(current_category) if current_category in category_options else 0
@@ -1868,15 +1889,21 @@ def show_admin():
                 lock_value = st.checkbox("Lock this rider's category/price", value=bool(selected_row['Locked']))
 
                 if st.button("Save Rider Override"):
+                    name_arg = new_name.strip() if new_name.strip() != current_name else None
                     updated = update_rider_overrides(
                         rider_id=int(selected_row['ID']),
                         category=new_category,
                         price=float(new_price),
+                        name=name_arg,
                     )
                     lock_updated = set_rider_lock(int(selected_row['ID']), lock_value)
                     if updated:
                         lock_text = "locked" if lock_value else "unlocked"
-                        st.success(f"Saved override for {selected_name}: {new_category}, {new_price:.1f} points ({lock_text}).")
+                        final_name = new_name.strip() if name_arg else current_name
+                        st.success(f"Saved override for {final_name}: {new_category}, {new_price:.1f} points ({lock_text}).")
+                        # Patch bootstrap JSON so auto-sync doesn't revert the name on restart
+                        if name_arg:
+                            _patch_bootstrap_name(current_name, name_arg, SEASON_YEAR)
                     elif not lock_updated:
                         st.error("Could not save lock state. Rider was not found.")
                     else:

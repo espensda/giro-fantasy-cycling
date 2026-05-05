@@ -327,14 +327,16 @@ def add_rider(name: str, team: str, category: str, price: float, youth: bool = F
         session.close()
 
 
-def update_rider_overrides(rider_id: int, category: str, price: float) -> bool:
-    """Update rider category and price overrides, returning True if rider was found."""
+def update_rider_overrides(rider_id: int, category: str, price: float, name: str | None = None) -> bool:
+    """Update rider category, price and optionally name, returning True if rider was found."""
     session = _get_session()
     try:
         rider = session.query(Rider).filter(Rider.id == rider_id).first()
         if rider is None:
             return False
 
+        if name is not None:
+            rider.name = name
         rider.category = category
         rider.price = float(price)
         session.commit()
