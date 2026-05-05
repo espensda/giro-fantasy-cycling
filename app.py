@@ -286,6 +286,10 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
     allowed_categories = set(TEAM_CATEGORY_ORDER)
     score_by_name: dict[str, float] = {}
     category_by_name: dict[str, str] = {}
+    role_by_name: dict[str, str] = {}
+    captain_score_by_name: dict[str, float] = {}
+    sprinter_score_by_name: dict[str, float] = {}
+    climber_score_by_name: dict[str, float] = {}
 
     for _, record in normalized.iterrows():
         key = _name_key(str(record.get("name", "")))
@@ -303,6 +307,23 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
         if category_value in allowed_categories:
             category_by_name[key] = category_value
 
+        role_value = str(record.get("role", "")).strip().lower()
+        if role_value:
+            role_by_name[key] = role_value
+
+        for column, target in (
+            ("captain_score", captain_score_by_name),
+            ("sprinter_score", sprinter_score_by_name),
+            ("climber_score", climber_score_by_name),
+        ):
+            score_hint = record.get(column)
+            if score_hint is None or str(score_hint).strip() == "":
+                continue
+            try:
+                target[key] = float(score_hint)
+            except (TypeError, ValueError):
+                continue
+
     enriched: list[dict] = []
     for row in rows:
         item = dict(row)
@@ -312,6 +333,14 @@ def _apply_web_ratings(rows: list[dict], ratings_df: pd.DataFrame | None) -> lis
         if key in category_by_name:
             item["category"] = category_by_name[key]
             item["youth"] = category_by_name[key] == "youth"
+        if key in role_by_name:
+            item["role"] = role_by_name[key]
+        if key in captain_score_by_name:
+            item["captain_score"] = captain_score_by_name[key]
+        if key in sprinter_score_by_name:
+            item["sprinter_score"] = sprinter_score_by_name[key]
+        if key in climber_score_by_name:
+            item["climber_score"] = climber_score_by_name[key]
         enriched.append(item)
 
     return enriched
@@ -966,8 +995,8 @@ def show_admin():
     elif admin_page == "Scrape Riders":
         st.subheader("Scrape Riders from Web")
         st.caption(
-            "Optional: upload a web ratings CSV with columns `name, score` and optional `category` "
-            "to improve pricing and role assignment during import."
+            "Optional: upload a web ratings CSV with columns `name, score` and optional `category`, `role`, "
+            "`captain_score`, `sprinter_score`, `climber_score` to improve pricing and role assignment during import."
         )
         web_ratings_file = st.file_uploader(
             "Web ratings CSV (optional)",
