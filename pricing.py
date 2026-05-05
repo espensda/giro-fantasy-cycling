@@ -148,6 +148,23 @@ def _top20_quality(rank_value) -> float:
     return max(0.0, (21.0 - rank) / 20.0)
 
 
+def _rank_quality(rank_value, depth: int = 120, curve: float = 0.85) -> float:
+    """Return rank quality in [0, 1] using broader list depth.
+
+    This is used for pricing variation, not role assignment. Role assignment
+    stays strict top-20 via `_top20_quality` and `_enforce_list_categories`.
+    """
+    rank = _safe_float(rank_value)
+    if rank is None or rank <= 0:
+        return 0.0
+    if rank > depth:
+        return 0.0
+
+    normalized = (depth + 1.0 - rank) / depth
+    normalized = max(0.0, min(1.0, normalized))
+    return normalized ** curve
+
+
 def _price_from_quality(category: str, quality: float) -> float:
     low, high = PRICE_RANGES.get(category, (0.5, 1.0))
     clamped = max(0.0, min(1.0, float(quality)))
@@ -203,6 +220,27 @@ def _list_based_quality(row: dict) -> float | None:
     tt_q = _top20_quality(row.get('tt_rank'))
     classic_q = _top20_quality(row.get('classic_rank'))
 
+    # Broader list depth used for pricing variation among youth/water carriers.
+    gc_ext = _rank_quality(row.get('gc_rank'))
+    spr_ext = _rank_quality(row.get('sprinter_rank'))
+    clm_ext = _rank_quality(row.get('climber_rank'))
+    tt_ext = _rank_quality(row.get('tt_rank'))
+    classic_ext = _rank_quality(row.get('classic_rank'))
+
+    # Score fallback captures riders who are not in top slices of specialty pages.
+    score_fallback = max(
+        0.0,
+        min(
+            1.0,
+            max(
+                (_safe_float(row.get('captain_score')) or 0.0) / 100.0,
+                (_safe_float(row.get('sprinter_score')) or 0.0) / 100.0,
+                (_safe_float(row.get('climber_score')) or 0.0) / 100.0,
+                (_safe_float(row.get('water_carrier_score')) or 0.0) / 100.0,
+            ),
+        ),
+    )
+
     if category == 'captain':
         return gc_q
     if category == 'sprinter':
@@ -210,15 +248,26 @@ def _list_based_quality(row: dict) -> float | None:
     if category == 'climber':
         return clm_q
     if category == 'water_carrier':
-        # Requested behavior: TT/classic top seeds should price highest among water carriers.
-        return min(1.0, max(tt_q, classic_q) + (0.15 * max(gc_q, spr_q, clm_q)))
+        # TT/classics remain primary, but broader lists + fallback score add spread.
+        primary_q = max(tt_ext, classic_ext)
+        secondary_q = max(gc_ext, spr_ext, clm_ext)
+        return min(1.0, (primary_q * 0.6) + (secondary_q * 0.25) + (score_fallback * 0.15))
     if category == 'youth':
         age = _safe_float(row.get('age'))
         if age is None:
             age_q = 0.35
         else:
             age_q = max(0.0, min(1.0, (26.0 - age) / 8.0))
-        return min(1.0, (age_q * 0.8) + (0.2 * max(gc_q, spr_q, clm_q, tt_q, classic_q)))
+
+        # Youth riders get upside from broader specialty placement (e.g. decent sprinters).
+        specialty_q = max(
+            spr_ext,
+            gc_ext * 0.95,
+            clm_ext * 0.95,
+            tt_ext * 0.85,
+            classic_ext * 0.85,
+        )
+        return min(1.0, (age_q * 0.45) + (specialty_q * 0.4) + (score_fallback * 0.15))
     return None
 
 
@@ -267,6 +316,11 @@ def assign_prices(rows: list[dict]) -> list[dict]:
             if quality is None:
                 prices_by_index[index] = pricing_engine(category)
             else:
+                # Blend in normalized quality for categories with many close riders.
+                if category in {'youth', 'water_carrier'}:
+                    extra_quality = normalized_quality.get(index)
+                    if extra_quality is not None:
+                        quality = (quality * 0.8) + (extra_quality * 0.2)
                 prices_by_index[index] = _price_from_quality(category, quality)
 
         priced_rows = []
