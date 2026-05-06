@@ -9,7 +9,17 @@ import unicodedata
 from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 
-DB_PATH = os.getenv("DATABASE_URL", "sqlite:///giro_fantasy.db")
+def _resolve_db_url() -> str:
+    raw_url = os.getenv("DATABASE_URL", "sqlite:///giro_fantasy.db").strip()
+    # Streamlit secrets often use postgresql://...; default to pg8000 driver to avoid binary deps.
+    if raw_url.startswith("postgresql://"):
+        return raw_url.replace("postgresql://", "postgresql+pg8000://", 1)
+    if raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql+pg8000://", 1)
+    return raw_url
+
+
+DB_PATH = _resolve_db_url()
 PROJECT_DIR = Path(__file__).resolve().parent
 BACKUP_DIR = PROJECT_DIR / "backups"
 
