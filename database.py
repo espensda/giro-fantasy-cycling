@@ -246,6 +246,15 @@ class RiderWithdrawal(Base):
     note = Column(String, nullable=False, default="")
 
 
+class PlayerTeamSnapshot(Base):
+    __tablename__ = "player_team_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
+    stage_number = Column(Integer, nullable=False)
+    rider_id = Column(Integer, ForeignKey("riders.id"), nullable=False)
+
+
 SEED_DB_PATH = PROJECT_DIR / "data" / "seed.db"
 
 
@@ -441,6 +450,68 @@ def get_player_team(player_name: str) -> list[tuple[int, str, str, str, float, b
             .all()
         )
         return [(r.id, r.name, r.team, r.category, r.price, r.youth) for r in team_rows]
+    finally:
+        session.close()
+
+
+def get_player_team_for_stage(player_name: str, stage_number: int) -> list[tuple[int, str, str, str, float, bool]]:
+    """Get a player's team snapshot for a specific stage. Falls back to current team if no snapshot exists."""
+    session = _get_session()
+    try:
+        player = session.query(Player).filter(Player.name == player_name).first()
+        if player is None:
+            return []
+
+        # Try to get snapshot for this stage
+        snapshot_riders = (
+            session.query(Rider)
+            .join(PlayerTeamSnapshot, PlayerTeamSnapshot.rider_id == Rider.id)
+            .filter(
+                PlayerTeamSnapshot.player_id == player.id,
+                PlayerTeamSnapshot.stage_number == stage_number,
+            )
+            .all()
+        )
+
+        if snapshot_riders:
+            return [(r.id, r.name, r.team, r.category, r.price, r.youth) for r in snapshot_riders]
+
+        # Fall back to current team if no snapshot
+        team_rows = (
+            session.query(Rider)
+            .join(PlayerTeam, PlayerTeam.rider_id == Rider.id)
+            .filter(PlayerTeam.player_id == player.id)
+            .all()
+        )
+        return [(r.id, r.name, r.team, r.category, r.price, r.youth) for r in team_rows]
+    finally:
+        session.close()
+
+
+def save_team_snapshots(stage_number: int) -> None:
+    """Create team snapshots for all players for a given stage."""
+    session = _get_session()
+    try:
+        # Delete any existing snapshots for this stage
+        session.query(PlayerTeamSnapshot).filter(PlayerTeamSnapshot.stage_number == stage_number).delete()
+
+        # Get all players with their current teams
+        players = session.query(Player).all()
+        for player in players:
+            current_team = (
+                session.query(PlayerTeam)
+                .filter(PlayerTeam.player_id == player.id)
+                .all()
+            )
+            for player_team in current_team:
+                snapshot = PlayerTeamSnapshot(
+                    player_id=player.id,
+                    stage_number=stage_number,
+                    rider_id=player_team.rider_id,
+                )
+                session.add(snapshot)
+
+        session.commit()
     finally:
         session.close()
 

@@ -141,8 +141,13 @@ def calculate_leaderboard(
     classification_results: dict[str, list[tuple]] | None = None,
     stage_points: list[tuple[int, str, str, int, float]] | None = None,
     ds_rest_day_rows_by_player: dict[str, list[dict]] | None = None,
+    use_snapshots: bool = False,
 ) -> tuple[list[dict], dict[str, list[dict]]]:
-    """Build total leaderboard rows and per-player stage breakdowns from saved results."""
+    """Build total leaderboard rows and per-player stage breakdowns from saved results.
+    
+    If use_snapshots is True, will use team snapshots for each stage when available.
+    Otherwise falls back to the passed-in player_teams dict.
+    """
     scoring = ScoringSystem()
     classification_results = classification_results or {}
     stage_points = stage_points or []
@@ -171,24 +176,30 @@ def calculate_leaderboard(
     breakdown_by_player: dict[str, list[dict]] = {}
 
     for player in players:
-        team_rows = player_teams.get(player, [])
-        selected_rider_meta = {
-            row[0]: {
-                'team': row[2],
-                'category': row[3],
-            }
-            for row in team_rows
-            if row[3] != 'ds'
-        }
-        selected_rider_ids = set(selected_rider_meta.keys())
-        ds_row = next((row for row in team_rows if row[3] == 'ds'), None)
-        ds_team = ds_row[2] if ds_row else None
-        ds_rider_id = ds_row[0] if ds_row else None
-
         player_breakdown: list[dict] = []
         total_points = 0
 
         for stage_number in stages_to_score:
+            # Get team for this stage (snapshot if available, otherwise current)
+            if use_snapshots:
+                from database import get_player_team_for_stage
+                stage_team_rows = get_player_team_for_stage(player, stage_number)
+            else:
+                stage_team_rows = player_teams.get(player, [])
+            
+            selected_rider_meta = {
+                row[0]: {
+                    'team': row[2],
+                    'category': row[3],
+                }
+                for row in stage_team_rows
+                if row[3] != 'ds'
+            }
+            selected_rider_ids = set(selected_rider_meta.keys())
+            ds_row = next((row for row in stage_team_rows if row[3] == 'ds'), None)
+            ds_team = ds_row[2] if ds_row else None
+            ds_rider_id = ds_row[0] if ds_row else None
+
             stage_rows = stages.get(stage_number, [])
             uploaded_stage_points = uploaded_points_by_stage.get(stage_number)
             if uploaded_stage_points:

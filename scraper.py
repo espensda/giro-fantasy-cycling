@@ -533,12 +533,13 @@ class GiroScraper:
         rows: list[dict] = []
         team_links = []
         for a in soup.select("a[href]"):
-            href = a.get("href", "")
-            if "/team/" not in href:
+            href = str(a.get("href", "") or "").strip()
+            href_clean = href.lstrip("/")
+            if "team/" not in href_clean:
                 continue
-            if "/team-in-race/" in href:
+            if "team-in-race/" in href_clean:
                 continue
-            if f"-{year}" not in href:
+            if f"-{year}" not in href_clean:
                 continue
             team_links.append(a)
 
@@ -568,7 +569,7 @@ class GiroScraper:
             non_youth_index = 0
             ds_added = False
             for block in block_nodes:
-                for rider_link in block.select('a[href^="/rider/"]'):
+                for rider_link in block.select('a[href*="rider/"]'):
                     rider_name = _normalize_name(rider_link.get_text(" ", strip=True))
                     rider_slug = _extract_slug_from_href(rider_link.get("href", ""))
                     if not rider_name:
@@ -591,7 +592,7 @@ class GiroScraper:
                     if not is_youth:
                         non_youth_index += 1
 
-                staff_links = block.select('a[href^="/staff/"]')
+                staff_links = block.select('a[href*="staff/"]')
                 if staff_links and not ds_added:
                     rows.append(
                         {
@@ -611,6 +612,87 @@ class GiroScraper:
                 continue
             seen_names.add(row["name"])
             deduped.append(row)
+        return _normalize_team_rows(deduped)
+
+    def _parse_startlist_rows_modern(self, soup: BeautifulSoup) -> list[dict]:
+        """Parse PCS startlist pages that render team blocks as `a.team` + adjacent `ul`.
+
+        Newer PCS markup uses relative links (`team/...`, `rider/...`) and does not
+        always match the legacy block traversal in `_parse_startlist_rows`.
+        """
+        rows: list[dict] = []
+
+        team_links = soup.select('a.team[href*="team/"]')
+        for team_link in team_links:
+            team_name_raw = " ".join(team_link.get_text(" ", strip=True).split())
+            team_name = team_name_raw.replace(" (WT)", "").strip()
+            if not team_name:
+                continue
+
+            team_container = team_link.find_parent("div")
+            if team_container is None:
+                continue
+            rider_list = team_container.find_next_sibling("ul")
+            if rider_list is None:
+                continue
+
+            non_youth_index = 0
+            ds_added = False
+            for item in rider_list.select("li"):
+                rider_link = item.select_one('a[href*="rider/"]')
+                if rider_link is not None:
+                    rider_name = _normalize_name(rider_link.get_text(" ", strip=True))
+                    rider_slug = _extract_slug_from_href(rider_link.get("href", ""))
+                    if not rider_name:
+                        continue
+
+                    li_text = item.get_text(" ", strip=True)
+                    is_youth = "*" in li_text
+                    category = "youth" if is_youth else self._guess_rider_category(non_youth_index)
+
+                    rows.append(
+                        {
+                            "name": rider_name,
+                            "slug": rider_slug,
+                            "team": team_name,
+                            "category": category,
+                            "youth": is_youth,
+                        }
+                    )
+                    if not is_youth:
+                        non_youth_index += 1
+                    continue
+
+                staff_link = item.select_one('a[href*="staff/"]')
+                if staff_link is not None and not ds_added:
+                    rows.append(
+                        {
+                            "name": team_name,
+                            "team": team_name,
+                            "category": "ds",
+                            "youth": False,
+                        }
+                    )
+                    ds_added = True
+
+            if not ds_added:
+                rows.append(
+                    {
+                        "name": team_name,
+                        "team": team_name,
+                        "category": "ds",
+                        "youth": False,
+                    }
+                )
+
+        deduped: list[dict] = []
+        seen_names: set[str] = set()
+        for row in rows:
+            if row["name"] in seen_names:
+                continue
+            seen_names.add(row["name"])
+            deduped.append(row)
+
         return _normalize_team_rows(deduped)
 
     def parse_startlist_html_content(self, html_content: str, year: int) -> list[dict]:
@@ -1627,6 +1709,8 @@ class GiroScraper:
         try:
             soup = self._get_soup(url)
             rows = self._parse_startlist_rows(soup, year=year)
+            if not rows:
+                rows = self._parse_startlist_rows_modern(soup)
             if rows:
                 rows = self.enrich_rows_with_specialty_scores(rows, year=year)
                 self._save_cache(year, rows)

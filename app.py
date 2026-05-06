@@ -19,6 +19,7 @@ from database import (
     read_database_backup_bytes, get_current_database_counts, get_backup_database_counts,
     restore_database_from_bytes,
     upsert_rider_withdrawal, get_rider_withdrawals, delete_rider_withdrawal,
+    save_team_snapshots,
 )
 from config import TEAM_COMPOSITION, PRICE_RANGES, BUDGET_LIMIT, MAX_TRANSFERS, PLAYERS, SEASON_YEAR, PLAYER_PINS
 from pricing import assign_prices
@@ -851,6 +852,7 @@ def show_leaderboard():
         classification_results=classification_results,
         stage_points=stage_points,
         ds_rest_day_rows_by_player=ds_rest_day_rows_by_player,
+        use_snapshots=True,
     )
 
     df_leaderboard = pd.DataFrame(leaderboard_rows)
@@ -873,6 +875,15 @@ def show_transfers():
     player = st.session_state.authenticated_player
     st.write(f"**Player:** {player}")
 
+    transfers_used = count_transfers(player)
+    transfers_available = MAX_TRANSFERS - transfers_used
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Transfers Used", f"{transfers_used} / {MAX_TRANSFERS}")
+    with col2:
+        st.metric("Transfers Available", transfers_available)
+
     window_status = get_game_window_status()
     st.caption(str(window_status['transfers_message']))
     if not window_status['transfers_open']:
@@ -880,9 +891,6 @@ def show_transfers():
         return
     
     current_team = get_player_team(player)
-    transfers_used = count_transfers(player)
-    
-    st.write(f"Transfers used: {transfers_used} / {MAX_TRANSFERS}")
 
     if not current_team:
         st.info("No saved team found. Build a team first in Team Selection.")
@@ -1167,14 +1175,6 @@ def show_admin():
         st.subheader("Add Stage Results")
         result_year = st.number_input("Giro year", min_value=2000, max_value=2100, value=SEASON_YEAR, step=1, key="results_year")
         stage_num = st.number_input("Stage number", 1, 21, 1)
-        enable_firstcycling = st.checkbox(
-            "Try experimental FirstCycling fallback (best effort)",
-            value=False,
-            help=(
-                "Attempts FirstCycling before Cyclingstage."
-                " If blocked or unparseable, fetch continues with other sources."
-            ),
-        )
         st.info(f"Fetch and preview results for stage {stage_num} before wiring them into scoring.")
 
         rider_rows = get_all_riders()
@@ -1189,7 +1189,6 @@ def show_admin():
                     stage_payload = scraper.scrape_stage_results(
                         year=int(result_year),
                         stage_number=int(stage_num),
-                        include_firstcycling=enable_firstcycling,
                     )
                     st.session_state["last_stage_results"] = stage_payload
                     st.success(
@@ -1217,6 +1216,7 @@ def show_admin():
                         stage_number=int(stage_num),
                         result_rows=stage_payload.get("results", []),
                     )
+                    save_team_snapshots(int(stage_num))
                     st.success(f"Imported {inserted} stage rows for stage {int(stage_num)}.")
                     if replaced:
                         st.info(f"Replaced {replaced} existing saved result rows for this stage.")
@@ -1226,8 +1226,62 @@ def show_admin():
                         )
                         st.write(unmatched)
 
+        st.subheader("📤 Manual Upload: Stage Results (Excel)")
+        st.caption("Columns required: `position`, `name`. Optionally `time`. Use this if the scraper fails.")
+        if riders_df.empty:
+            st.warning("No riders loaded yet. Scrape riders first.")
+        else:
+            stage_results_xlsx = st.file_uploader(
+                "Stage results .xlsx",
+                type=["xlsx"],
+                key=f"manual_stage_results_{int(stage_num)}",
+            )
+            if stage_results_xlsx is not None:
+                try:
+                    upload_df = read_excel_with_normalized_columns(stage_results_xlsx)
+                    missing_cols = validate_columns(upload_df, ['position', 'name'])
+                    if missing_cols:
+                        st.error(f"Missing columns: {', '.join(missing_cols)}")
+                    else:
+                        upload_rows = []
+                        fuzzy_corrections = {}
+                        for _, row in upload_df.iterrows():
+                            csv_name = str(row['name']).strip()
+                            if not csv_name:
+                                continue
+                            matched_name = csv_name
+                            if csv_name not in rider_names:
+                                fuzzy_match = fuzzy_match_rider_name(csv_name, rider_names, cutoff=0.80)
+                                if fuzzy_match:
+                                    matched_name = fuzzy_match
+                                    fuzzy_corrections[csv_name] = fuzzy_match
+                            upload_rows.append({
+                                'position': str(row['position']).strip(),
+                                'name': matched_name,
+                                'time': str(row['time']).strip() if 'time' in upload_df.columns else '',
+                            })
+                        st.dataframe(pd.DataFrame(upload_rows), use_container_width=True, height=220)
+                        if fuzzy_corrections:
+                            st.info(f"🔄 Corrected {len(fuzzy_corrections)} name(s): " + ", ".join(f"'{k}'→'{v}'" for k, v in list(fuzzy_corrections.items())[:5]))
+                        unmatched_names = [r['name'] for r in upload_rows if r['name'] not in rider_names]
+                        if unmatched_names:
+                            st.warning(f"⚠️ {len(set(unmatched_names))} unmatched: {', '.join(sorted(set(unmatched_names))[:5])}")
+                        if st.button("Import Stage Results (Manual)", key=f"import_manual_stage_results_{int(stage_num)}"):
+                            inserted, replaced, unmatched_rows = save_stage_results(
+                                stage_number=int(stage_num),
+                                result_rows=upload_rows,
+                            )
+                            save_team_snapshots(int(stage_num))
+                            st.success(f"Imported {inserted} rows for stage {int(stage_num)}.")
+                            if replaced:
+                                st.info(f"Replaced {replaced} existing rows.")
+                            if unmatched_rows:
+                                st.warning(f"Skipped {len(unmatched_rows)} unmatched riders.")
+                except Exception as exc:
+                    st.error(f"Error reading file: {exc}")
+
         st.divider()
-        st.subheader("🟣 Fetch GC Standings (After Stage)")
+        st.subheader("�🟣 Fetch GC Standings (After Stage)")
         st.caption("Fetch GC standings after this stage from PCS and import them as classification results.")
 
         if st.button("Fetch GC Standings"):
@@ -1266,6 +1320,7 @@ def show_admin():
                         stage_number=int(stage_num),
                         result_rows=gc_payload.get("results", []),
                     )
+                    save_team_snapshots(int(stage_num))
                     st.success(f"Imported {inserted} GC rows for stage {int(stage_num)}.")
                     if replaced:
                         st.info(f"Replaced {replaced} existing GC rows for this stage.")
@@ -1284,6 +1339,61 @@ def show_admin():
                 use_container_width=True,
                 height=260,
             )
+
+        st.subheader("📤 Manual Upload: GC Standings (Excel)")
+        st.caption("Columns required: `position`, `name`, `value` (time gap e.g. `+0:42`). Use this if the scraper fails.")
+        if riders_df.empty:
+            st.warning("No riders loaded yet. Scrape riders first.")
+        else:
+            gc_xlsx = st.file_uploader(
+                "GC standings .xlsx",
+                type=["xlsx"],
+                key=f"manual_gc_{int(stage_num)}",
+            )
+            if gc_xlsx is not None:
+                try:
+                    upload_df = read_excel_with_normalized_columns(gc_xlsx)
+                    missing_cols = validate_columns(upload_df, ['position', 'name', 'value'])
+                    if missing_cols:
+                        st.error(f"Missing columns: {', '.join(missing_cols)}")
+                    else:
+                        upload_rows = []
+                        fuzzy_corrections = {}
+                        for _, row in upload_df.iterrows():
+                            csv_name = str(row['name']).strip()
+                            if not csv_name:
+                                continue
+                            matched_name = csv_name
+                            if csv_name not in rider_names:
+                                fuzzy_match = fuzzy_match_rider_name(csv_name, rider_names, cutoff=0.80)
+                                if fuzzy_match:
+                                    matched_name = fuzzy_match
+                                    fuzzy_corrections[csv_name] = fuzzy_match
+                            upload_rows.append({
+                                'position': str(row['position']).strip(),
+                                'name': matched_name,
+                                'value': str(row['value']).strip(),
+                            })
+                        st.dataframe(pd.DataFrame(upload_rows), use_container_width=True, height=220)
+                        if fuzzy_corrections:
+                            st.info(f"🔄 Corrected {len(fuzzy_corrections)} name(s): " + ", ".join(f"'{k}'→'{v}'" for k, v in list(fuzzy_corrections.items())[:5]))
+                        unmatched_names = [r['name'] for r in upload_rows if r['name'] not in rider_names]
+                        if unmatched_names:
+                            st.warning(f"⚠️ {len(set(unmatched_names))} unmatched: {', '.join(sorted(set(unmatched_names))[:5])}")
+                        if st.button("Import GC Standings (Manual)", key=f"import_manual_gc_{int(stage_num)}"):
+                            inserted, replaced, unmatched_rows = save_classification_results(
+                                classification='gc',
+                                stage_number=int(stage_num),
+                                result_rows=upload_rows,
+                            )
+                            save_team_snapshots(int(stage_num))
+                            st.success(f"Imported {inserted} GC rows for stage {int(stage_num)}.")
+                            if replaced:
+                                st.info(f"Replaced {replaced} existing rows.")
+                            if unmatched_rows:
+                                st.warning(f"Skipped {len(unmatched_rows)} unmatched riders.")
+                except Exception as exc:
+                    st.error(f"Error reading file: {exc}")
 
         st.divider()
         st.subheader("🟠 Fetch Stage KOM & Red Bull Sprint Points")
@@ -1426,7 +1536,6 @@ def show_admin():
                                 stage_payload = scraper.scrape_stage_results(
                                     year=result_year_int,
                                     stage_number=stage_number_int,
-                                    include_firstcycling=enable_firstcycling,
                                 )
                             except Exception:
                                 stage_payload = {
@@ -1495,7 +1604,6 @@ def show_admin():
                                 stage_payload = scraper.scrape_stage_results(
                                     year=result_year_int,
                                     stage_number=stage_number_int,
-                                    include_firstcycling=enable_firstcycling,
                                 )
                             except Exception:
                                 stage_payload = {
@@ -1625,6 +1733,8 @@ def show_admin():
                         result_rows=sprint_preview_rows,
                     )
 
+                save_team_snapshots(int(stage_num))
+
                 st.success(
                     f"Imported KOM rows: {kom_inserted}; Imported Red Bull sprint rows: {sprint_inserted}."
                 )
@@ -1665,94 +1775,115 @@ def show_admin():
                     height=220,
                 )
 
-        st.divider()
-        st.subheader("📤 Upload Stage Points (Excel)")
-        st.caption(
-            "Upload one Excel file (.xlsx) with columns: name, points. "
-            "The points include GC, mountain and sprint points of the stage."
-        )
-
+        st.subheader("📤 Manual Upload: KOM Points (Excel)")
+        st.caption("Columns required: `position`, `name`, `value` (points). Use this if the scraper fails.")
         if riders_df.empty:
-            st.warning("No riders are loaded yet. Scrape riders first before importing stage points.")
+            st.warning("No riders loaded yet. Scrape riders first.")
         else:
-            points_excel_file = st.file_uploader(
-                "Excel file (.xlsx) with stage points",
+            kom_xlsx = st.file_uploader(
+                "KOM points .xlsx",
                 type=["xlsx"],
-                key=f"stage_points_xlsx_{int(stage_num)}",
+                key=f"manual_kom_{int(stage_num)}",
             )
-
-            if points_excel_file is not None:
+            if kom_xlsx is not None:
                 try:
-                    upload_df = read_excel_with_normalized_columns(points_excel_file)
-                    st.caption(f"Columns: {', '.join(upload_df.columns)}")
-
-                    required_cols = ['name', 'points']
-                    missing_cols = validate_columns(upload_df, required_cols)
+                    upload_df = read_excel_with_normalized_columns(kom_xlsx)
+                    missing_cols = validate_columns(upload_df, ['position', 'name', 'value'])
                     if missing_cols:
-                        st.error(f"Missing required columns: {', '.join(missing_cols)}")
+                        st.error(f"Missing columns: {', '.join(missing_cols)}")
                     else:
-                        csv_rows = []
+                        upload_rows = []
                         fuzzy_corrections = {}
-
                         for _, row in upload_df.iterrows():
                             csv_name = str(row['name']).strip()
                             if not csv_name:
                                 continue
-
                             matched_name = csv_name
                             if csv_name not in rider_names:
                                 fuzzy_match = fuzzy_match_rider_name(csv_name, rider_names, cutoff=0.80)
                                 if fuzzy_match:
                                     matched_name = fuzzy_match
                                     fuzzy_corrections[csv_name] = fuzzy_match
-
-                            csv_rows.append(
-                                {
-                                    'name': matched_name,
-                                    'points': str(row['points']).strip(),
-                                }
-                            )
-
-                        st.write(f"**Preview ({len(csv_rows)} rows)**")
-                        preview_df = pd.DataFrame(csv_rows)
-                        st.dataframe(preview_df, use_container_width=True, height=220)
-
+                            upload_rows.append({
+                                'position': str(row['position']).strip(),
+                                'name': matched_name,
+                                'value': str(row['value']).strip(),
+                            })
+                        st.dataframe(pd.DataFrame(upload_rows), use_container_width=True, height=220)
                         if fuzzy_corrections:
-                            st.info(f"🔄 Corrected {len(fuzzy_corrections)} rider name(s):")
-                            for orig, corrected in list(fuzzy_corrections.items())[:5]:
-                                st.caption(f"  • '{orig}' → '{corrected}'")
-
-                        unmatched = [row['name'] for row in csv_rows if row['name'] not in rider_names]
-                        if unmatched:
-                            st.warning(f"⚠️ {len(set(unmatched))} rider(s) still not found: {', '.join(sorted(set(unmatched))[:5])}")
-
-                        if st.button("Import Stage Points", key=f"import_stage_points_xlsx_{int(stage_num)}"):
-                            inserted, replaced, unmatched_rows = save_stage_points(
+                            st.info(f"🔄 Corrected {len(fuzzy_corrections)} name(s): " + ", ".join(f"'{k}'→'{v}'" for k, v in list(fuzzy_corrections.items())[:5]))
+                        unmatched_names = [r['name'] for r in upload_rows if r['name'] not in rider_names]
+                        if unmatched_names:
+                            st.warning(f"⚠️ {len(set(unmatched_names))} unmatched: {', '.join(sorted(set(unmatched_names))[:5])}")
+                        if st.button("Import KOM Points (Manual)", key=f"import_manual_kom_{int(stage_num)}"):
+                            inserted, replaced, unmatched_rows = save_classification_results(
+                                classification='mountains',
                                 stage_number=int(stage_num),
-                                result_rows=csv_rows,
+                                result_rows=upload_rows,
                             )
-                            st.success(f"Imported {inserted} stage points rows for stage {int(stage_num)}.")
+                            save_team_snapshots(int(stage_num))
+                            st.success(f"Imported {inserted} KOM rows for stage {int(stage_num)}.")
                             if replaced:
-                                st.info(f"Replaced {replaced} existing stage points rows for this stage.")
+                                st.info(f"Replaced {replaced} existing rows.")
                             if unmatched_rows:
                                 st.warning(f"Skipped {len(unmatched_rows)} unmatched riders.")
-                except Exception as e:
-                    st.error(f"Error reading Excel file: {e}")
-            
-            # Show all saved classifications below
-            st.divider()
-            st.subheader("Saved Stage Points")
-            saved_stage_points = get_stage_points(stage_number=int(stage_num))
-            if saved_stage_points:
-                saved_points_df = pd.DataFrame(
-                    saved_stage_points,
-                    columns=['Stage', 'Name', 'Team', 'Rider ID', 'Points'],
-                )
-                st.dataframe(
-                    saved_points_df[['Name', 'Team', 'Points']].sort_values(['Points', 'Name'], ascending=[False, True]),
-                    use_container_width=True,
-                    height=260,
-                )
+                except Exception as exc:
+                    st.error(f"Error reading file: {exc}")
+
+        st.subheader("📤 Manual Upload: Red Bull Sprint Points (Excel)")
+        st.caption("Columns required: `position`, `name`, `value` (points). Use this if the scraper fails.")
+        if riders_df.empty:
+            st.warning("No riders loaded yet. Scrape riders first.")
+        else:
+            sprint_xlsx = st.file_uploader(
+                "Red Bull sprint points .xlsx",
+                type=["xlsx"],
+                key=f"manual_sprint_{int(stage_num)}",
+            )
+            if sprint_xlsx is not None:
+                try:
+                    upload_df = read_excel_with_normalized_columns(sprint_xlsx)
+                    missing_cols = validate_columns(upload_df, ['position', 'name', 'value'])
+                    if missing_cols:
+                        st.error(f"Missing columns: {', '.join(missing_cols)}")
+                    else:
+                        upload_rows = []
+                        fuzzy_corrections = {}
+                        for _, row in upload_df.iterrows():
+                            csv_name = str(row['name']).strip()
+                            if not csv_name:
+                                continue
+                            matched_name = csv_name
+                            if csv_name not in rider_names:
+                                fuzzy_match = fuzzy_match_rider_name(csv_name, rider_names, cutoff=0.80)
+                                if fuzzy_match:
+                                    matched_name = fuzzy_match
+                                    fuzzy_corrections[csv_name] = fuzzy_match
+                            upload_rows.append({
+                                'position': str(row['position']).strip(),
+                                'name': matched_name,
+                                'value': str(row['value']).strip(),
+                            })
+                        st.dataframe(pd.DataFrame(upload_rows), use_container_width=True, height=220)
+                        if fuzzy_corrections:
+                            st.info(f"🔄 Corrected {len(fuzzy_corrections)} name(s): " + ", ".join(f"'{k}'→'{v}'" for k, v in list(fuzzy_corrections.items())[:5]))
+                        unmatched_names = [r['name'] for r in upload_rows if r['name'] not in rider_names]
+                        if unmatched_names:
+                            st.warning(f"⚠️ {len(set(unmatched_names))} unmatched: {', '.join(sorted(set(unmatched_names))[:5])}")
+                        if st.button("Import Red Bull Sprint Points (Manual)", key=f"import_manual_sprint_{int(stage_num)}"):
+                            inserted, replaced, unmatched_rows = save_classification_results(
+                                classification='sprints',
+                                stage_number=int(stage_num),
+                                result_rows=upload_rows,
+                            )
+                            save_team_snapshots(int(stage_num))
+                            st.success(f"Imported {inserted} sprint rows for stage {int(stage_num)}.")
+                            if replaced:
+                                st.info(f"Replaced {replaced} existing rows.")
+                            if unmatched_rows:
+                                st.warning(f"Skipped {len(unmatched_rows)} unmatched riders.")
+                except Exception as exc:
+                    st.error(f"Error reading file: {exc}")
 
     elif admin_page == "Manage Withdrawals":
         st.subheader("Manage Rider Withdrawals")
