@@ -19,7 +19,7 @@ from database import (
     read_database_backup_bytes, get_current_database_counts, get_backup_database_counts,
     restore_database_from_bytes,
     upsert_rider_withdrawal, get_rider_withdrawals, delete_rider_withdrawal,
-    save_team_snapshots,
+    save_team_snapshots, is_sqlite_backend,
 )
 from config import TEAM_COMPOSITION, PRICE_RANGES, BUDGET_LIMIT, MAX_TRANSFERS, PLAYERS, SEASON_YEAR, PLAYER_PINS
 from pricing import assign_prices
@@ -2044,11 +2044,15 @@ def show_admin():
         st.subheader("Database Backup & Restore")
 
         db_info = get_database_file_info()
+        sqlite_backend = is_sqlite_backend()
         if db_info["exists"]:
             size_kb = db_info["size_bytes"] / 1024
-            st.caption(
-                f"DB: {db_info['path']} | Size: {size_kb:.1f} KB | Last modified: {db_info['modified_at']}"
-            )
+            if sqlite_backend:
+                st.caption(
+                    f"DB: {db_info['path']} | Size: {size_kb:.1f} KB | Last modified: {db_info['modified_at']}"
+                )
+            else:
+                st.caption("DB backend: Managed PostgreSQL (external)")
             current_counts = get_current_database_counts()
             st.write(
                 "Current DB rows: "
@@ -2058,80 +2062,86 @@ def show_admin():
         else:
             st.warning("Database file is missing. Initialize DB first.")
 
-        if st.button("Create Backup Snapshot"):
-            try:
-                backup_name = create_database_backup()
-                st.success(f"Backup created: {backup_name}")
-            except Exception as exc:
-                st.error(f"Backup failed: {exc}")
-
-        backups = list_database_backups()
-        if not backups:
-            st.info("No backups found in backups/ yet.")
-        else:
-            selected_backup = st.selectbox("Available backups", options=backups)
-
-            try:
-                selected_counts = get_backup_database_counts(selected_backup)
-                st.write(
-                    "Selected backup rows: "
-                    f"riders={selected_counts['riders']}, players={selected_counts['players']}, "
-                    f"stage_results={selected_counts['stage_results']}, stage_points={selected_counts['stage_points']}"
-                )
-                if selected_counts["riders"] == 0:
-                    st.warning("This backup has 0 riders. Restoring it will still leave riders empty.")
-            except Exception as exc:
-                st.error(f"Could not read selected backup contents: {exc}")
-
-            try:
-                backup_bytes = read_database_backup_bytes(selected_backup)
-                st.download_button(
-                    "Download Selected Backup",
-                    data=backup_bytes,
-                    file_name=selected_backup,
-                    mime="application/octet-stream",
-                )
-            except Exception as exc:
-                st.error(f"Could not open backup for download: {exc}")
-
-            confirm_restore = st.checkbox("I understand restore will replace current database file.")
-            if st.button("Restore Selected Backup"):
-                if not confirm_restore:
-                    st.error("Please confirm restore before continuing.")
-                else:
-                    try:
-                        restore_database_backup(selected_backup)
-                        st.success(f"Restored database from {selected_backup}.")
-                        st.session_state.pop("last_stage_results", None)
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(f"Restore failed: {exc}")
-
-        st.divider()
-        st.subheader("📤 Upload External Database")
-        st.caption(
-            "Upload a giro_fantasy.db SQLite file from another environment or a previous season. "
-            "It will be saved as a backup snapshot and immediately restored."
-        )
-        uploaded_db = st.file_uploader("SQLite .db file", type=["db"], key="upload_db_file")
-        if uploaded_db is not None:
-            db_bytes = uploaded_db.read()
-            st.info(f"Uploaded: {uploaded_db.name} ({len(db_bytes) / 1024:.1f} KB)")
-            confirm_upload_restore = st.checkbox(
-                "I understand this will replace the current database.",
-                key="confirm_upload_restore",
+        if not sqlite_backend:
+            st.info(
+                "Local file backup/restore tools are disabled for managed PostgreSQL. "
+                "Use your provider snapshots/backups (for example in Neon dashboard)."
             )
-            if st.button("Restore Uploaded Database", key="restore_uploaded_db_btn"):
-                if not confirm_upload_restore:
-                    st.error("Please confirm before restoring.")
-                else:
-                    try:
-                        backup_name = restore_database_from_bytes(db_bytes)
-                        st.success(f"Uploaded database saved as {backup_name} and restored successfully.")
-                        st.session_state.pop("last_stage_results", None)
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(f"Restore failed: {exc}")
+        else:
+            if st.button("Create Backup Snapshot"):
+                try:
+                    backup_name = create_database_backup()
+                    st.success(f"Backup created: {backup_name}")
+                except Exception as exc:
+                    st.error(f"Backup failed: {exc}")
+
+            backups = list_database_backups()
+            if not backups:
+                st.info("No backups found in backups/ yet.")
+            else:
+                selected_backup = st.selectbox("Available backups", options=backups)
+
+                try:
+                    selected_counts = get_backup_database_counts(selected_backup)
+                    st.write(
+                        "Selected backup rows: "
+                        f"riders={selected_counts['riders']}, players={selected_counts['players']}, "
+                        f"stage_results={selected_counts['stage_results']}, stage_points={selected_counts['stage_points']}"
+                    )
+                    if selected_counts["riders"] == 0:
+                        st.warning("This backup has 0 riders. Restoring it will still leave riders empty.")
+                except Exception as exc:
+                    st.error(f"Could not read selected backup contents: {exc}")
+
+                try:
+                    backup_bytes = read_database_backup_bytes(selected_backup)
+                    st.download_button(
+                        "Download Selected Backup",
+                        data=backup_bytes,
+                        file_name=selected_backup,
+                        mime="application/octet-stream",
+                    )
+                except Exception as exc:
+                    st.error(f"Could not open backup for download: {exc}")
+
+                confirm_restore = st.checkbox("I understand restore will replace current database file.")
+                if st.button("Restore Selected Backup"):
+                    if not confirm_restore:
+                        st.error("Please confirm restore before continuing.")
+                    else:
+                        try:
+                            restore_database_backup(selected_backup)
+                            st.success(f"Restored database from {selected_backup}.")
+                            st.session_state.pop("last_stage_results", None)
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(f"Restore failed: {exc}")
+
+            st.divider()
+            st.subheader("📤 Upload External Database")
+            st.caption(
+                "Upload a giro_fantasy.db SQLite file from another environment or a previous season. "
+                "It will be saved as a backup snapshot and immediately restored."
+            )
+            uploaded_db = st.file_uploader("SQLite .db file", type=["db"], key="upload_db_file")
+            if uploaded_db is not None:
+                db_bytes = uploaded_db.read()
+                st.info(f"Uploaded: {uploaded_db.name} ({len(db_bytes) / 1024:.1f} KB)")
+                confirm_upload_restore = st.checkbox(
+                    "I understand this will replace the current database.",
+                    key="confirm_upload_restore",
+                )
+                if st.button("Restore Uploaded Database", key="restore_uploaded_db_btn"):
+                    if not confirm_upload_restore:
+                        st.error("Please confirm before restoring.")
+                    else:
+                        try:
+                            backup_name = restore_database_from_bytes(db_bytes)
+                            st.success(f"Uploaded database saved as {backup_name} and restored successfully.")
+                            st.session_state.pop("last_stage_results", None)
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(f"Restore failed: {exc}")
 
     elif admin_page == "View Database":
         st.subheader("Database Contents")
