@@ -5,7 +5,5 @@ requests
 beautifulsoup4
 lxml
 sqlalchemy
-psycopg2-binary
-pg8000
 pypdf
 cloudscraper

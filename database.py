@@ -1,70 +1,28 @@
 """Database models and helper functions for the Giro Fantasy Cycling app."""
 
 from datetime import datetime, UTC
-import os
 from pathlib import Path
 import sqlite3
-import ssl
 import unicodedata
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 
-def _resolve_db_url() -> str:
-    raw_url = os.getenv("DATABASE_URL", "sqlite:///giro_fantasy.db").strip()
-    # Streamlit secrets often use postgresql://...; default to pg8000 driver to avoid binary deps.
-    if raw_url.startswith("postgresql://"):
-        return raw_url.replace("postgresql://", "postgresql+pg8000://", 1)
-    if raw_url.startswith("postgres://"):
-        return raw_url.replace("postgres://", "postgresql+pg8000://", 1)
-    return raw_url
-
-
-def _resolve_engine_kwargs(db_url: str) -> dict:
-    kwargs = {"echo": False, "pool_pre_ping": True}
-    if not db_url.startswith("postgresql+pg8000://"):
-        return kwargs
-
-    parts = urlsplit(db_url)
-    query_items = parse_qsl(parts.query, keep_blank_values=True)
-    filtered_items: list[tuple[str, str]] = []
-    sslmode_value = None
-    for key, value in query_items:
-        if key.lower() == "sslmode":
-            sslmode_value = value.lower()
-            continue
-        filtered_items.append((key, value))
-
-    if sslmode_value in {"require", "verify-ca", "verify-full"}:
-        kwargs["connect_args"] = {"ssl_context": ssl.create_default_context()}
-
-    if sslmode_value is not None:
-        normalized_query = urlencode(filtered_items)
-        normalized_url = urlunsplit((parts.scheme, parts.netloc, parts.path, normalized_query, parts.fragment))
-        kwargs["url"] = normalized_url
-
-    return kwargs
-
-
-DB_PATH = _resolve_db_url()
+DB_PATH = "sqlite:///giro_fantasy.db"
 PROJECT_DIR = Path(__file__).resolve().parent
 BACKUP_DIR = PROJECT_DIR / "backups"
 
 Base = declarative_base()
-ENGINE_KWARGS = _resolve_engine_kwargs(DB_PATH)
-engine = create_engine(ENGINE_KWARGS.pop("url", DB_PATH), **ENGINE_KWARGS)
+engine = create_engine(DB_PATH, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 
 
 def is_sqlite_backend() -> bool:
-    return DB_PATH.startswith("sqlite:///")
+    return True
 
 
 def _db_file_path() -> Path:
     """Return local SQLite file path from SQLAlchemy DB URL."""
-    if not is_sqlite_backend():
-        raise RuntimeError("Database file path is only available for SQLite backends.")
     prefix = "sqlite:///"
     if DB_PATH.startswith(prefix):
         raw = Path(DB_PATH[len(prefix):])
