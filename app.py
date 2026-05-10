@@ -43,15 +43,21 @@ if 'db_initialized' not in st.session_state:
         existing_names = {row[1] for row in existing_rows}
 
         if bootstrap_names and bootstrap_names != existing_names:
-            clear_riders()
-            for row in assign_prices(bootstrap_rows):
-                add_rider(
-                    name=row['name'],
-                    team=row.get('team', ''),
-                    category=row.get('category', 'water_carrier'),
-                    price=row.get('price', 0),
-                    youth=row.get('youth', False),
-                )
+            # Only auto-sync riders if no player teams have been saved yet.
+            # Once the game is live (teams selected), never wipe the database
+            # automatically — a mismatch could be caused by live-race DNS/data
+            # drift and silently deleting all teams/results would break the game.
+            db_counts = get_current_database_counts()
+            if db_counts.get('player_teams', 0) == 0:
+                clear_riders()
+                for row in assign_prices(bootstrap_rows):
+                    add_rider(
+                        name=row['name'],
+                        team=row.get('team', ''),
+                        category=row.get('category', 'water_carrier'),
+                        price=row.get('price', 0),
+                        youth=row.get('youth', False),
+                    )
     except Exception:
         pass  # silently skip; admin can trigger manually
     st.session_state.db_initialized = True
@@ -514,11 +520,18 @@ def show_team_selection():
     player = st.session_state.authenticated_player
     st.write(f"**Player:** {player}")
 
+    existing_team = get_player_team(player)
+
     window_status = get_game_window_status()
     if not window_status['team_selection_open']:
-        st.warning(str(window_status['team_selection_message']))
-        st.info("Use Transfers for rider changes during open transfer windows.")
-        return
+        if existing_team:
+            st.warning(str(window_status['team_selection_message']))
+            st.info("Use Transfers for rider changes during open transfer windows.")
+            return
+        st.warning(
+            "Team selection is normally locked, but no saved team was found for your player. "
+            "You can submit your team now as an emergency recovery action."
+        )
     
     st.write(f"**Budget: {BUDGET_LIMIT}** (Remaining: TBD)")
     
@@ -531,7 +544,6 @@ def show_team_selection():
         st.info("No riders in database yet. Use Admin → Scrape Riders first.")
         return
 
-    existing_team = get_player_team(player)
     existing_by_category = {}
     if existing_team:
         existing_df = pd.DataFrame(existing_team, columns=['ID', 'Name', 'Team', 'Category', 'Price', 'Youth'])

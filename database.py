@@ -1,6 +1,7 @@
 """Database models and helper functions for the Giro Fantasy Cycling app."""
 
 from datetime import datetime, UTC
+import os
 from pathlib import Path
 import sqlite3
 import unicodedata
@@ -8,17 +9,57 @@ import unicodedata
 from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 
-DB_PATH = "sqlite:///giro_fantasy.db"
+def _resolve_db_path() -> str:
+    """Return the SQLAlchemy database URL.
+
+    Priority:
+    1. DATABASE_URL environment variable (allows PostgreSQL on cloud deployments).
+    2. Streamlit secrets: ``st.secrets["DATABASE_URL"]`` — used when the app runs
+       on Streamlit Cloud and the secret is set in the app dashboard.
+    3. Fallback to a local SQLite file ``giro_fantasy.db``.
+
+    Heroku/Neon may provide a ``postgres://`` scheme; SQLAlchemy 1.4+ requires
+    ``postgresql://``, so we normalise it automatically.
+    """
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if not url:
+        try:
+            import streamlit as _st  # noqa: PLC0415
+            url = str(_st.secrets.get("DATABASE_URL", "")).strip()
+        except Exception:
+            pass
+    if url:
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://"):]
+        return url
+    return "sqlite:///giro_fantasy.db"
+
+
+DB_PATH = _resolve_db_path()
 PROJECT_DIR = Path(__file__).resolve().parent
 BACKUP_DIR = PROJECT_DIR / "backups"
 
 Base = declarative_base()
-engine = create_engine(DB_PATH, echo=False, pool_pre_ping=True)
+
+_engine_kwargs: dict = {"echo": False, "pool_pre_ping": True}
+if DB_PATH.startswith("postgresql"):
+    # Connection pooling settings suitable for cloud Postgres (Neon, Supabase, etc.)
+    # Neon requires SSL; pass sslmode=require via connect_args if not already in URL.
+    _connect_args: dict = {}
+    if "sslmode" not in DB_PATH:
+        _connect_args["sslmode"] = "require"
+    _engine_kwargs.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "connect_args": _connect_args,
+    })
+
+engine = create_engine(DB_PATH, **_engine_kwargs)
 SessionLocal = sessionmaker(bind=engine)
 
 
 def is_sqlite_backend() -> bool:
-    return True
+    return DB_PATH.startswith("sqlite")
 
 
 def _db_file_path() -> Path:
