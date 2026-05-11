@@ -479,7 +479,8 @@ def show_home():
         - GC standings (top 10)
         - Category multipliers (2x-4x)
         - Stage winner team bonus (+10)
-        - DS scoring (top 5 riders)
+        - DS scoring (only riders finishing top 5)
+        - DS rest-day bonus/penalty
         """
         )
     

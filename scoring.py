@@ -29,7 +29,6 @@ class ScoringSystem:
             20: 1,
         }
         self.stage_winner_team_rider_bonus = 10
-        self.stage_winner_team_bonus = 10
         self.category_multiplier = {
             'captain': 2,
             'sprinter': 2,
@@ -105,17 +104,17 @@ class ScoringSystem:
         return adjusted_points * multiplier
 
     def calculate_ds_stage_score(self, ds_team: str, stage_rows: list[tuple]) -> int:
-        """DS scores from the top five finishers on the selected team plus a winner bonus."""
-        team_points = [
-            self.calculate_stage_score(position)
-            for _, position, _, team, _, _ in stage_rows
-            if team == ds_team
-        ]
-        score = sum(sorted(team_points, reverse=True)[:5])
-
-        winning_team = next((team for _, position, _, team, _, _ in stage_rows if position == 1), None)
-        if winning_team == ds_team:
-            score += self.stage_winner_team_bonus
+        """DS scores only from riders on the selected team who finish in the stage top 5."""
+        score = 0
+        for _, position, _, team, _, _ in stage_rows:
+            if team != ds_team:
+                continue
+            try:
+                pos = int(position)
+            except (TypeError, ValueError):
+                continue
+            if 1 <= pos <= 5:
+                score += self.calculate_stage_score(pos)
         return score
 
     def calculate_classification_score(self, classification: str, position: int, value: str = "") -> int:
