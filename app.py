@@ -1678,14 +1678,17 @@ def show_admin():
                         )
                     if kom_fetch_error:
                         st.warning(
-                            "KOM endpoint is currently unavailable from PCS for this stage/year. "
+                            "⚠️ KOM stage points are currently unavailable:\n"
+                            f"- Primary source (ProCyclingStats): {kom_fetch_error}\n"
+                            f"- Fallback source (FirstCycling): Also blocked or unavailable.\n\n"
                             "Red Bull sprint points were still fetched. "
-                            f"Details: {kom_fetch_error}"
+                            "You can proceed without KOM data or retry later."
                         )
                     elif not kom_import_rows:
                         st.warning(
-                            "KOM stage points are currently unavailable from PCS in this environment. "
-                            "No KOM rows were generated."
+                            "⚠️ KOM stage points could not be extracted from available sources.\n"
+                            "Both ProCyclingStats and FirstCycling returned no data. "
+                            "Red Bull sprint points were still fetched successfully."
                         )
                 except Exception as exc:
                     st.error(f"KOM/Red Bull fetch failed: {exc}")
