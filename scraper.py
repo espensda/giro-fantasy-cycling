@@ -1376,16 +1376,24 @@ class GiroScraper:
                 code = " ".join(th.get_text(" ", strip=True).split()).lower().replace(" ", "_")
             header_codes.append(code)
 
-        # Check if the expected metric column is present first
         metric_index = None
         for idx, code in enumerate(header_codes):
             if code == metric_code:
                 metric_index = idx
                 break
 
-        # When anti-bot protection serves the generic stage-result table on `stage-*-kom`,
-        # it includes GC/time columns and does not represent the KOM standings table.
-        # Return early if metric column is missing (anti-bot detected).
+        # Anti-bot detection: if metric column missing and we see GC table markers, likely anti-bot
+        if metric_index is None and "gc_timelag" in header_codes:
+            # PCS returned a GC/stage result table instead of the expected metric page
+            return {
+                "year": year,
+                "stage_number": stage_number,
+                "metric": metric,
+                "url": url,
+                "fetched_at": datetime.now(UTC).isoformat(),
+                "results": [],
+            }
+
         if metric_index is None:
             return {
                 "year": year,
