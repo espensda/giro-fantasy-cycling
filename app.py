@@ -1411,11 +1411,12 @@ def show_admin():
         st.divider()
         st.subheader("🟠 Fetch Stage KOM & Red Bull Sprint Points")
         st.caption(
-            "KOM stage points are derived as delta from cumulative KOM standings. "
+            "KOM stage points are fetched directly from each KOM Sprint table on the stage page. "
             "Red Bull sprint points are ranked from Red Bull KM data and imported as sprint points."
         )
 
         if st.button("Fetch KOM + Red Bull Sprint", key="fetch_kom_redbull"):
+            st.session_state.pop("last_stage_kom_redbull", None)
             with st.spinner("Fetching KOM and Red Bull sprint points..."):
                 scraper = GiroScraper()
                 try:
@@ -1425,10 +1426,9 @@ def show_admin():
                     kom_fetch_error = None
                     kom_source = "unknown"
                     try:
-                        kom_current = scraper.scrape_stage_metric_points(
+                        kom_current = scraper.scrape_stage_kom_sprints(
                             year=result_year_int,
                             stage_number=stage_number_int,
-                            metric="kom_cumulative",
                         )
                         kom_source = kom_current.get("source", "unknown")
                     except Exception as exc:
@@ -1438,62 +1438,25 @@ def show_admin():
                             "source": "unavailable",
                         }
 
-                    # Fallback: derive KOM stage points from FirstCycling cumulative KOM standings.
-                    if not kom_current.get("results"):
-                        try:
-                            kom_current = scraper.scrape_firstcycling_cumulative_points(
-                                year=result_year_int,
-                                stage_number=stage_number_int,
-                                classification="mountains",
-                            )
-                            kom_source = kom_current.get("source", "firstcycling-widget")
-                            kom_fetch_error = None
-                        except Exception:
-                            pass
-
-                    kom_previous_rows = []
-                    if stage_number_int > 1 and kom_current.get("results"):
-                        try:
-                            if kom_source == "firstcycling-widget":
-                                kom_previous = scraper.scrape_firstcycling_cumulative_points(
-                                    year=result_year_int,
-                                    stage_number=stage_number_int - 1,
-                                    classification="mountains",
-                                )
-                            else:
-                                kom_previous = scraper.scrape_stage_metric_points(
-                                    year=result_year_int,
-                                    stage_number=stage_number_int - 1,
-                                    metric="kom_cumulative",
-                                )
-                            kom_previous_rows = kom_previous.get("results", [])
-                        except Exception:
-                            kom_previous_rows = []
-
-                    kom_previous_by_name = {
-                        _name_key(row.get("name", "")): int(row.get("value", 0) or 0)
-                        for row in kom_previous_rows
-                        if row.get("name")
-                    }
-
-                    kom_stage_points_rows: list[dict] = []
+                    kom_aggregate_by_name: dict[str, dict] = {}
                     for row in kom_current.get("results", []):
                         rider_name = row.get("name", "")
                         if not rider_name:
                             continue
                         key = _name_key(rider_name)
-                        current_points = int(row.get("value", 0) or 0)
-                        previous_points = kom_previous_by_name.get(key, 0)
-                        stage_points_delta = max(current_points - previous_points, 0)
-                        if stage_points_delta <= 0:
+                        sprint_points = int(row.get("value", 0) or 0)
+                        if sprint_points <= 0:
                             continue
-                        kom_stage_points_rows.append(
-                            {
+
+                        if key not in kom_aggregate_by_name:
+                            kom_aggregate_by_name[key] = {
                                 "name": rider_name,
                                 "team": row.get("team", ""),
-                                "points": stage_points_delta,
+                                "points": 0,
                             }
-                        )
+                        kom_aggregate_by_name[key]["points"] += sprint_points
+
+                    kom_stage_points_rows = list(kom_aggregate_by_name.values())
 
                     kom_stage_points_rows.sort(key=lambda item: (-item["points"], item["name"]))
                     kom_import_rows = [
@@ -1678,19 +1641,24 @@ def show_admin():
                         )
                     if kom_fetch_error:
                         st.warning(
-                            "⚠️ KOM stage points are currently unavailable:\n"
-                            f"- Primary source (ProCyclingStats): {kom_fetch_error}\n"
-                            f"- Fallback source (FirstCycling): Also blocked or unavailable.\n\n"
-                            "Red Bull sprint points were still fetched. "
-                            "You can proceed without KOM data or retry later."
+                            "⚠️ KOM sprint tables are currently unavailable from ProCyclingStats:\n"
+                            f"- Error: {kom_fetch_error}\n\n"
+                            "Red Bull sprint points were still fetched. You can retry KOM later."
                         )
                     elif not kom_import_rows:
                         st.warning(
-                            "⚠️ KOM stage points could not be extracted from available sources.\n"
-                            "Both ProCyclingStats and FirstCycling returned no data. "
+                            "⚠️ No KOM sprint rows were found on the stage page. "
                             "Red Bull sprint points were still fetched successfully."
                         )
                 except Exception as exc:
+                    st.session_state["last_stage_kom_redbull"] = {
+                        "year": int(result_year),
+                        "stage_number": int(stage_num),
+                        "kom_rows": [],
+                        "sprint_rows": [],
+                        "kom_source": "error",
+                        "bonus_source": "error",
+                    }
                     st.error(f"KOM/Red Bull fetch failed: {exc}")
 
         stage_kom_redbull_payload = st.session_state.get("last_stage_kom_redbull")
@@ -1709,7 +1677,7 @@ def show_admin():
 
             col_kom, col_sprint = st.columns(2)
             with col_kom:
-                st.markdown("**Stage KOM points (derived)**")
+                st.markdown("**Stage KOM points (from KOM sprints)**")
                 if kom_preview_rows:
                     kom_preview_df = pd.DataFrame(kom_preview_rows)
                     st.dataframe(

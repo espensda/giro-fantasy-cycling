@@ -1,6 +1,6 @@
+
 """Web scraping utilities for Giro fantasy data."""
 
-from __future__ import annotations
 
 from io import BytesIO
 import json
@@ -1476,6 +1476,67 @@ class GiroScraper:
         )
         payload["source"] = "direct"
         return payload
+
+    def scrape_stage_kom_sprints(self, stage_number: int, year: int) -> dict:
+        """Fetch stage KOM sprint points directly from all KOM Sprint tables on PCS stage result page."""
+        stage_url = f"{self.base_url}/race/giro-d-italia/{year}/stage-{stage_number}/result"
+        soup = self._get_soup(stage_url)
+
+        kom_tables: list[tuple[str, BeautifulSoup]] = []
+        for heading in soup.select("h2, h3, h4"):
+            heading_text = " ".join(heading.get_text(" ", strip=True).split())
+            if "KOM Sprint" not in heading_text:
+                continue
+
+            table = heading.find_next_sibling("table")
+            if table is not None:
+                kom_tables.append((heading_text, table))
+
+        results: list[dict] = []
+        for sprint_label, table in kom_tables:
+            for row in table.select("tr"):
+                cells = row.find_all(["td", "th"])
+                if len(cells) < 4:
+                    continue
+
+                pos_text = "".join(ch for ch in cells[0].get_text(" ", strip=True) if ch.isdigit())
+                if not pos_text:
+                    continue
+
+                rider_anchor = row.select_one('a[href*="/rider/"], a[href*="rider/"]')
+                rider_name = _normalize_name(rider_anchor.get_text(" ", strip=True)) if rider_anchor else ""
+                if not rider_name:
+                    continue
+
+                team_anchor = row.select_one('a[href*="/team/"], a[href*="team/"]')
+                team_name = " ".join(team_anchor.get_text(" ", strip=True).split()) if team_anchor else ""
+
+                value = 0
+                for cell in reversed(cells):
+                    cell_text = " ".join(cell.get_text(" ", strip=True).split())
+                    digits = "".join(ch for ch in cell_text if ch.isdigit())
+                    if digits:
+                        value = int(digits)
+                        break
+
+                results.append(
+                    {
+                        "sprint": sprint_label,
+                        "position": int(pos_text),
+                        "name": rider_name,
+                        "team": team_name,
+                        "value": value,
+                    }
+                )
+
+        return {
+            "year": year,
+            "stage_number": stage_number,
+            "url": stage_url,
+            "fetched_at": datetime.now(UTC).isoformat(),
+            "results": results,
+            "source": "pcs-kom-sprints",
+        }
 
     def scrape_firstcycling_cumulative_points(
         self,
