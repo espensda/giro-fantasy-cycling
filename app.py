@@ -663,7 +663,7 @@ def show_team_selection():
 
         selected_df = riders_df[riders_df['Name'].isin(chosen_names)]
         total_cost = float(selected_df['Price'].sum())
-        if total_cost > BUDGET_LIMIT:
+        if total_cost >= BUDGET_LIMIT:
             st.error(f"Team exceeds budget: {total_cost:.1f} / {BUDGET_LIMIT}")
             return
 
@@ -981,7 +981,7 @@ def show_transfers():
         updated_df = all_riders_df[all_riders_df['Name'].isin(updated_team_names)]
 
         total_cost = float(updated_df['Price'].sum())
-        if total_cost > BUDGET_LIMIT:
+        if total_cost >= BUDGET_LIMIT:
             st.error(f"Transfer exceeds budget: {total_cost:.1f} / {BUDGET_LIMIT}")
             return
 
