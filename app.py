@@ -878,7 +878,36 @@ def show_leaderboard():
         st.info("This player has no scored stages yet. Save a team and import stage results to see breakdowns.")
         return
 
+
     st.dataframe(pd.DataFrame(player_breakdown), use_container_width=True)
+
+    # --- Points per rider for selected player ---
+    with st.expander("Show points per rider for this player"):
+        # Get the selected player's current team
+        team_rows = get_player_team(selected_player)
+        if not team_rows:
+            st.info("No saved team found for this player.")
+        else:
+            # Build DataFrame of all riders
+            all_riders = get_all_riders()
+            df_riders = pd.DataFrame(all_riders, columns=['ID', 'Name', 'Team', 'Category', 'Price', 'Youth'])
+            # Only keep riders in the player's team
+            team_rider_ids = [row[0] for row in team_rows]
+            team_df = df_riders[df_riders['ID'].isin(team_rider_ids)].copy()
+
+            # Calculate points per rider for this player
+            # Use the same logic as _build_rider_points_by_stage, but only for this team
+            stage_points_by_stage = _build_rider_points_by_stage(df_riders)
+            # Sum points for each rider across all stages
+            rider_points = {}
+            for stage_dict in stage_points_by_stage.values():
+                for rider_id, pts in stage_dict.items():
+                    rider_points[rider_id] = rider_points.get(rider_id, 0) + pts
+
+            team_df['Points'] = team_df['ID'].map(lambda rid: rider_points.get(rid, 0))
+            team_df = team_df[['Name', 'Team', 'Category', 'Points']].sort_values(['Points', 'Name'], ascending=[False, True])
+            st.dataframe(team_df.reset_index(drop=True), use_container_width=True)
+            st.caption(f"Showing {len(team_df)} riders for {selected_player}")
 
 def show_transfers():
     """Transfer management"""
