@@ -895,17 +895,16 @@ def show_leaderboard():
             team_rider_ids = [row[0] for row in team_rows]
             team_df = df_riders[df_riders['ID'].isin(team_rider_ids)].copy()
 
-            # Calculate points per rider for this player
-            # Use the same logic as _build_rider_points_by_stage, but only for this team
+            # Calculate points per rider per stage for this player
             stage_points_by_stage = _build_rider_points_by_stage(df_riders)
-            # Sum points for each rider across all stages
-            rider_points = {}
-            for stage_dict in stage_points_by_stage.values():
-                for rider_id, pts in stage_dict.items():
-                    rider_points[rider_id] = rider_points.get(rider_id, 0) + pts
-
-            team_df['Points'] = team_df['ID'].map(lambda rid: rider_points.get(rid, 0))
-            team_df = team_df[['Name', 'Team', 'Category', 'Points']].sort_values(['Points', 'Name'], ascending=[False, True])
+            stage_numbers = sorted(stage_points_by_stage.keys())
+            # Build a DataFrame: rows=riders, columns=Stage 1, Stage 2, ..., Total
+            for s in stage_numbers:
+                team_df[f"Stage {s}"] = team_df['ID'].map(lambda rid, _s=s: stage_points_by_stage[_s].get(rid, 0))
+            stage_cols = [f"Stage {s}" for s in stage_numbers]
+            team_df['Total'] = team_df[stage_cols].sum(axis=1)
+            display_cols = ['Name', 'Team', 'Category'] + stage_cols + ['Total']
+            team_df = team_df[display_cols].sort_values(['Total', 'Name'], ascending=[False, True])
             st.dataframe(team_df.reset_index(drop=True), use_container_width=True)
             st.caption(f"Showing {len(team_df)} riders for {selected_player}")
 
