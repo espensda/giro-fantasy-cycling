@@ -910,8 +910,23 @@ def show_leaderboard():
         stage_cols = [f"Stage {s}" for s in stage_numbers]
         team_df['Total'] = team_df[stage_cols].sum(axis=1)
         display_cols = ['Name', 'Team', 'Category'] + stage_cols + ['Total']
-        team_df = team_df[display_cols].sort_values(['Total', 'Name'], ascending=[False, True])
-        st.dataframe(team_df.reset_index(drop=True), use_container_width=True)
+        team_df = team_df.sort_values(['Total', 'Name'], ascending=[False, True]).reset_index(drop=True)
+
+        # Shade stage cells where the rider was not selected on that stage.
+        team_display_df = team_df[display_cols].copy()
+        stage_styles = pd.DataFrame('', index=team_display_df.index, columns=team_display_df.columns)
+        for s in stage_numbers:
+            stage_col = f"Stage {s}"
+            not_on_team_mask = ~team_df['ID'].isin(team_by_stage[s])
+            stage_styles.loc[not_on_team_mask, stage_col] = 'background-color: #f2f2f2; color: #9aa0a6;'
+
+        styled_team_df = (
+            team_display_df.style
+            .apply(lambda _df: stage_styles, axis=None)
+            .format({col: '{:.1f}' for col in stage_cols + ['Total']})
+        )
+
+        st.dataframe(styled_team_df, use_container_width=True)
         st.caption(f"Showing {len(team_df)} riders ever selected for {selected_player}")
 
 def show_transfers():
