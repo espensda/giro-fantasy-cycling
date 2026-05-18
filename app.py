@@ -869,6 +869,9 @@ def show_leaderboard():
     )
 
     df_leaderboard = pd.DataFrame(leaderboard_rows)
+    for col in ['Rank', 'Total Points', 'Stages Scored']:
+        if col in df_leaderboard.columns:
+            df_leaderboard[col] = pd.to_numeric(df_leaderboard[col], errors='coerce').fillna(0).round(0).astype(int)
     st.dataframe(df_leaderboard[['Rank', 'Player', 'Total Points', 'Stages Scored']], use_container_width=True)
 
     st.subheader("Stage Breakdown")
@@ -879,7 +882,11 @@ def show_leaderboard():
         return
 
 
-    st.dataframe(pd.DataFrame(player_breakdown), use_container_width=True)
+    breakdown_df = pd.DataFrame(player_breakdown)
+    for col in ['Rider Points', 'DS Points', 'Classification Points', 'Stage Total']:
+        if col in breakdown_df.columns:
+            breakdown_df[col] = pd.to_numeric(breakdown_df[col], errors='coerce').fillna(0).round(0).astype(int)
+    st.dataframe(breakdown_df, use_container_width=True)
 
     # --- Points per rider for selected player ---
     with st.expander("Show points per rider for this player (transfer-aware)"):
@@ -914,6 +921,9 @@ def show_leaderboard():
 
         # Shade stage cells where the rider was not selected on that stage.
         team_display_df = team_df[display_cols].copy()
+        for col in stage_cols + ['Total']:
+            if col in team_display_df.columns:
+                team_display_df[col] = pd.to_numeric(team_display_df[col], errors='coerce').fillna(0).round(0).astype(int)
         stage_styles = pd.DataFrame('', index=team_display_df.index, columns=team_display_df.columns)
         for s in stage_numbers:
             stage_col = f"Stage {s}"
@@ -923,7 +933,6 @@ def show_leaderboard():
         styled_team_df = (
             team_display_df.style
             .apply(lambda _df: stage_styles, axis=None)
-            .format({col: '{:.1f}' for col in stage_cols + ['Total']})
         )
 
         st.dataframe(styled_team_df, use_container_width=True)
