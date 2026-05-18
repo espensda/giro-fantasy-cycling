@@ -882,31 +882,37 @@ def show_leaderboard():
     st.dataframe(pd.DataFrame(player_breakdown), use_container_width=True)
 
     # --- Points per rider for selected player ---
-    with st.expander("Show points per rider for this player"):
-        # Get the selected player's current team
-        team_rows = get_player_team(selected_player)
-        if not team_rows:
-            st.info("No saved team found for this player.")
-        else:
-            # Build DataFrame of all riders
-            all_riders = get_all_riders()
-            df_riders = pd.DataFrame(all_riders, columns=['ID', 'Name', 'Team', 'Category', 'Price', 'Youth'])
-            # Only keep riders in the player's team
-            team_rider_ids = [row[0] for row in team_rows]
-            team_df = df_riders[df_riders['ID'].isin(team_rider_ids)].copy()
+    with st.expander("Show points per rider for this player (transfer-aware)"):
+        from database import get_player_team_for_stage
+        all_riders = get_all_riders()
+        df_riders = pd.DataFrame(all_riders, columns=['ID', 'Name', 'Team', 'Category', 'Price', 'Youth'])
+        stage_points_by_stage = _build_rider_points_by_stage(df_riders)
+        stage_numbers = sorted(stage_points_by_stage.keys())
 
-            # Calculate points per rider per stage for this player
-            stage_points_by_stage = _build_rider_points_by_stage(df_riders)
-            stage_numbers = sorted(stage_points_by_stage.keys())
-            # Build a DataFrame: rows=riders, columns=Stage 1, Stage 2, ..., Total
-            for s in stage_numbers:
-                team_df[f"Stage {s}"] = team_df['ID'].map(lambda rid, _s=s: stage_points_by_stage[_s].get(rid, 0))
-            stage_cols = [f"Stage {s}" for s in stage_numbers]
-            team_df['Total'] = team_df[stage_cols].sum(axis=1)
-            display_cols = ['Name', 'Team', 'Category'] + stage_cols + ['Total']
-            team_df = team_df[display_cols].sort_values(['Total', 'Name'], ascending=[False, True])
-            st.dataframe(team_df.reset_index(drop=True), use_container_width=True)
-            st.caption(f"Showing {len(team_df)} riders for {selected_player}")
+        # Build a dict: stage_number -> set of rider IDs on team for that stage
+        team_by_stage = {}
+        for s in stage_numbers:
+            team_rows = get_player_team_for_stage(selected_player, s)
+            team_by_stage[s] = set(row[0] for row in team_rows)
+
+        # Set of all rider IDs ever on the team
+        all_team_rider_ids = set()
+        for ids in team_by_stage.values():
+            all_team_rider_ids.update(ids)
+
+        team_df = df_riders[df_riders['ID'].isin(all_team_rider_ids)].copy()
+        # For each stage, fill in points if rider was on team, else 0
+        for s in stage_numbers:
+            team_df[f"Stage {s}"] = team_df.apply(
+                lambda row, _s=s: stage_points_by_stage[_s].get(row['ID'], 0) if row['ID'] in team_by_stage[_s] else 0,
+                axis=1
+            )
+        stage_cols = [f"Stage {s}" for s in stage_numbers]
+        team_df['Total'] = team_df[stage_cols].sum(axis=1)
+        display_cols = ['Name', 'Team', 'Category'] + stage_cols + ['Total']
+        team_df = team_df[display_cols].sort_values(['Total', 'Name'], ascending=[False, True])
+        st.dataframe(team_df.reset_index(drop=True), use_container_width=True)
+        st.caption(f"Showing {len(team_df)} riders ever selected for {selected_player}")
 
 def show_transfers():
     """Transfer management"""
